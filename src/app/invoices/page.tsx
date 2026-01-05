@@ -2,7 +2,7 @@ import Link from "next/link";
 import styles from "./invoices.module.css";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
-import { formatCurrencyKES } from "@/lib/format";
+import { InvoicesListClient } from "@/components/invoices-list-client";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,18 @@ export default async function InvoicesPage() {
     include: { customer: { select: { name: true } } },
     take: 20,
   });
+  const customers = await prisma.customer.findMany({
+    where: { tenantId },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+
+  const initialInvoices = invoices.map((inv) => ({
+    id: inv.id,
+    customerName: inv.customer?.name || "Walk-in customer",
+    total: Number(inv.total || 0),
+    status: inv.status,
+  }));
 
   return (
     <div className={styles.screen}>
@@ -27,68 +39,10 @@ export default async function InvoicesPage() {
         </Link>
       </header>
 
-      <div className={styles.list}>
-        {invoices.map((invoice) => (
-          <article key={invoice.id} className={styles.card}>
-            <div className={styles.cardTop}>
-              <div>
-                <p className={styles.invoiceId}>{invoice.id}</p>
-                <p className={styles.customer}>
-                  {invoice.customer?.name || "Walk-in customer"}
-                </p>
-              </div>
-              <span
-                className={`${styles.badge} ${
-                  invoice.status === "PAID"
-                    ? styles.badgeSuccess
-                    : styles.badgeInfo
-                }`}
-              >
-                {invoice.status === "PAID" ? "Paid" : "Waiting"}
-              </span>
-            </div>
-            <div className={styles.rowBetween}>
-              <p className={styles.amount}>
-                {formatCurrencyKES(Number(invoice.total))}
-              </p>
-              <div className={styles.actions}>
-                {invoice.status !== "PAID" && (
-                  <>
-                    <form
-                      action={`/api/payments/mpesa/request`}
-                      method="POST"
-                      className={styles.inlineForm}
-                    >
-                      <input type="hidden" name="invoiceId" value={invoice.id} />
-                      <input
-                        type="hidden"
-                        name="amount"
-                        value={Number(invoice.total)}
-                      />
-                      <button type="submit" className={styles.linkButton}>
-                        Request M-Pesa
-                      </button>
-                    </form>
-                    <form
-                      action={`/api/invoices/${invoice.id}/mark-paid`}
-                      method="POST"
-                      className={styles.inlineForm}
-                    >
-                      <input type="hidden" name="_method" value="PATCH" />
-                      <button type="submit" className={styles.linkButton}>
-                        Mark paid
-                      </button>
-                    </form>
-                  </>
-                )}
-                <Link href={`/invoice/${invoice.id}`} className={styles.ghost}>
-                  View
-                </Link>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
+      <InvoicesListClient
+        initialInvoices={initialInvoices}
+        customers={customers}
+      />
     </div>
   );
 }

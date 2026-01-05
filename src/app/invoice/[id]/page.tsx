@@ -3,6 +3,8 @@ import styles from "./invoice.module.css";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
 import { formatCurrencyKES } from "@/lib/format";
+import { InvoiceQuickActions } from "@/components/invoice-quick-actions";
+import { InvoiceShareLinks } from "@/components/invoice-share-links";
 
 export const dynamic = "force-dynamic";
 
@@ -77,27 +79,29 @@ export default async function InvoiceDetail({
 
       <section className={styles.card}>
         <p className={styles.label}>Actions</p>
-        <div className={styles.actionsRow}>
-          {!paid && (
-            <>
-              <Link
-                href={`/invoice/${invoice.id}/request-mpesa`}
-                className={styles.primary}
-              >
-                Request M-Pesa payment
-              </Link>
-              <Link
-                href={`/invoice/${invoice.id}/mark-paid`}
-                className={styles.secondary}
-              >
-                Mark as paid (cash)
-              </Link>
-            </>
-          )}
-          <Link href="/invoice/new" className={styles.ghost}>
-            New invoice
-          </Link>
-        </div>
+        <InvoiceQuickActions
+          invoiceId={invoice.id}
+          amount={Number(invoice.total || 0)}
+          status={
+            invoice.status === "PAID" ? "PAID" : (invoice.status as
+              | "WAITING"
+              | "SENT"
+              | "DRAFT"
+              | "PARTIAL"
+              | "CANCELLED")
+          }
+        />
+        <Link href="/invoice/new" className={styles.ghost}>
+          New invoice
+        </Link>
+        <InvoiceShareLinks
+          invoiceId={invoice.id}
+          statusText={
+            paid
+              ? `Invoice ${invoice.id} is paid.`
+              : `Invoice ${invoice.id} is waiting for payment.`
+          }
+        />
       </section>
 
       <section className={styles.card}>

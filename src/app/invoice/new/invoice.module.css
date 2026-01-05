@@ -19,14 +19,14 @@
 
 .title {
   margin: 0;
-  font-size: 26px;
+  font-size: clamp(24px, 4vw, 30px);
 }
 
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: clamp(14px, 3vw, 18px);
   box-shadow: var(--shadow-soft);
   display: flex;
   flex-direction: column;
@@ -186,6 +186,24 @@
   color: #2563eb;
   font-weight: 600;
   cursor: pointer;
+}
+
+@media (max-width: 540px) {
+  .lineTop,
+  .lineBottom {
+    flex-direction: column;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .primary,
+  .secondary,
+  .ghostLink {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 .ghostLink {

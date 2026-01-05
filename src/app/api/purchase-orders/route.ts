@@ -1,0 +1,90 @@
+import { Prisma } from "@prisma/client";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getTenantId } from "@/lib/data";
+
+export async function POST(request: Request) {
+  try {
+    const tenantId = await getTenantId();
+    const body = await request.json();
+    const itemId = body?.itemId as string | undefined;
+    const quantity = Number(body?.quantity) || 0;
+    const supplierId = body?.supplierId as string | undefined;
+    const needBy = body?.needBy ? new Date(body.needBy) : null;
+    const dueDate = body?.dueDate ? new Date(body.dueDate) : null;
+    const unitCost = body?.unitCost ? new Prisma.Decimal(body.unitCost) : new Prisma.Decimal(0);
+    const total = unitCost.mul(quantity);
+
+    if (!itemId) {
+      return NextResponse.json({ error: "Missing item id." }, { status: 400 });
+    }
+    if (quantity <= 0) {
+      return NextResponse.json(
+        { error: "Quantity must be greater than 0." },
+        { status: 400 },
+      );
+    }
+    if (!supplierId) {
+      return NextResponse.json(
+        { error: "Supplier is required for an order." },
+        { status: 400 },
+      );
+    }
+
+    const item = await prisma.item.findFirst({
+      where: { id: itemId, tenantId },
+      select: {
+        id: true,
+        name: true,
+        preferredSupplier: { select: { name: true } },
+      },
+    });
+
+    if (!item) {
+      return NextResponse.json({ error: "Item not found." }, { status: 404 });
+    }
+
+    const po = await prisma.purchaseOrder.create({
+      data: {
+        tenantId,
+        status: "ORDERED",
+        total,
+        supplierId,
+        needBy: needBy ?? undefined,
+        dueDate: dueDate ?? undefined,
+        lines: {
+          create: [
+            {
+              itemId,
+              quantity,
+              unitCost,
+            },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+
+    await prisma.activityEvent.create({
+      data: {
+        tenantId,
+        type: "PO",
+        message: `Order placed for ${quantity} × ${item.name}${
+          item.preferredSupplier ? ` from ${item.preferredSupplier.name}` : ""
+        }${needBy ? ` • need by ${needBy.toISOString().slice(0, 10)}` : ""}${
+          dueDate ? ` • due ${dueDate.toISOString().slice(0, 10)}` : ""
+        }.`,
+        refType: "purchaseOrder",
+        refId: po.id,
+      },
+    });
+
+    return NextResponse.json({ purchaseOrderId: po.id, message: "Order placed." });
+  } catch (error) {
+    console.error("[POST /api/purchase-orders]", error);
+    return NextResponse.json(
+      { error: "Could not create purchase order." },
+      { status: 500 },
+    );
+  }
+}
