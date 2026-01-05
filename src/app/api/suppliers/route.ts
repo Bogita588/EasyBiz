@@ -32,16 +32,29 @@ export async function POST(request: Request) {
     if (!name) {
       return NextResponse.json({ error: "Name is required." }, { status: 400 });
     }
-    const supplier = await prisma.supplier.create({
-      data: {
-        tenantId,
-        name,
-        phone,
-        email,
-        whatsapp,
-      },
-      select: { id: true, name: true },
-    });
+    let supplier;
+    try {
+      supplier = await prisma.supplier.create({
+        data: {
+          tenantId,
+          name,
+          phone,
+          email,
+          whatsapp,
+        },
+        select: { id: true, name: true },
+      });
+    } catch {
+      console.warn("[POST /api/suppliers] falling back without email/whatsapp");
+      supplier = await prisma.supplier.create({
+        data: {
+          tenantId,
+          name,
+          phone,
+        },
+        select: { id: true, name: true },
+      });
+    }
     return NextResponse.json({ supplier });
   } catch (error) {
     console.error("[POST /api/suppliers]", error);

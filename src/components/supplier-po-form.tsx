@@ -14,9 +14,12 @@ type Props = {
   supplierId: string;
   supplierName: string;
   items: ItemOption[];
+  contact?: { phone?: string | null; email?: string | null; whatsapp?: string | null };
 };
 
-export function SupplierPOForm({ supplierId, supplierName, items }: Props) {
+type LastPo = { id: string; qty: number; itemName?: string };
+
+export function SupplierPOForm({ supplierId, supplierName, items, contact }: Props) {
   const [itemId, setItemId] = useState(items[0]?.id ?? "");
   const [quantity, setQuantity] = useState<number>(1);
   const [needBy, setNeedBy] = useState("");
@@ -24,6 +27,7 @@ export function SupplierPOForm({ supplierId, supplierName, items }: Props) {
   const [unitCost, setUnitCost] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [lastPo, setLastPo] = useState<LastPo | null>(null);
 
   const submit = async () => {
     setBusy(true);
@@ -45,7 +49,10 @@ export function SupplierPOForm({ supplierId, supplierName, items }: Props) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || "Create failed");
       }
-      setStatus("PO created and logged. Share via inventory actions if needed.");
+      const data = await res.json();
+      const selectedItem = items.find((i) => i.id === itemId);
+      setStatus("PO created. Share with supplier to confirm delivery.");
+      setLastPo({ id: data.purchaseOrderId, qty: quantity, itemName: selectedItem?.name });
       setQuantity(1);
       setNeedBy("");
       setDueDate("");
@@ -110,6 +117,37 @@ export function SupplierPOForm({ supplierId, supplierName, items }: Props) {
         </button>
       </div>
       {status && <p className={styles.status}>{status}</p>}
+      {lastPo && (
+        <div className={styles.shareRow}>
+          {contact?.whatsapp && (
+            <a
+              className={styles.primary}
+              href={`https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(
+                `Purchase order ${lastPo.id} for ${lastPo.qty} × ${lastPo.itemName || "item"}.${
+                  needBy ? ` Need by ${needBy}.` : ""
+                }${dueDate ? ` Due ${dueDate}.` : ""}`,
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Send PO via WhatsApp
+            </a>
+          )}
+          <a
+            className={styles.primary}
+            href={`mailto:${contact?.email || ""}?subject=Purchase%20Order%20${lastPo.id}&body=${encodeURIComponent(
+              `Hi ${supplierName},\n\nPurchase order ${lastPo.id} for ${lastPo.qty} × ${lastPo.itemName || "item"}.${
+                needBy ? ` Need by ${needBy}.` : ""
+              }${dueDate ? ` Due ${dueDate}.` : ""}\n\nThank you.`,
+            )}`}
+          >
+            Send PO via Email
+          </a>
+          {contact?.phone && (
+            <p className={styles.helper}>Call/SMS: {contact.phone}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

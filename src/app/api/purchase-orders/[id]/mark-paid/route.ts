@@ -11,11 +11,25 @@ export async function PATCH(
     const { id } = await params;
     const tenantId = await getTenantId();
     const body = await request.json();
-    const amount = body?.amount ? new Prisma.Decimal(body.amount) : null;
+    const amount = body?.amount !== undefined && body?.amount !== null
+      ? new Prisma.Decimal(body.amount)
+      : null;
 
     const poRecord = await prisma.purchaseOrder.findUnique({
       where: { id, tenantId },
-      select: { total: true },
+      select: {
+        total: true,
+        needBy: true,
+        dueDate: true,
+        lines: {
+          select: {
+            quantity: true,
+            itemId: true,
+            item: { select: { name: true } },
+          },
+        },
+        supplier: { select: { name: true } },
+      },
     });
 
     if (!poRecord) {
@@ -27,24 +41,55 @@ export async function PATCH(
         ? "PARTIAL"
         : "RECEIVED";
 
-    const po = await prisma.purchaseOrder.update({
+    const now = new Date();
+    const setPaidAt =
+      status === "RECEIVED" && amount && poRecord.total && !amount.lt(poRecord.total);
+
+    const poUpdate = prisma.purchaseOrder.update({
       where: { id, tenantId },
       data: {
         status,
-        paidAt: new Date(),
+        paidAt: setPaidAt ? now : null,
       },
-      select: { id: true },
+      select: { id: true, total: true },
     });
 
-    await prisma.activityEvent.create({
+    const stockUpdates = poRecord.lines
+      .filter((line) => line.itemId)
+      .map((line) =>
+        prisma.item.update({
+          where: { id: line.itemId! },
+          data: { stockQuantity: { increment: line.quantity } },
+        }),
+      );
+
+    const firstLine = poRecord.lines[0];
+    const lineSummary = firstLine
+      ? `${firstLine.quantity} × ${firstLine.item?.name || "item"}`
+      : "order";
+    const totalNumber = poRecord.total ? Number(poRecord.total) : 0;
+    const expectedText = poRecord.needBy
+      ? ` Expected by ${poRecord.needBy.toISOString().slice(0, 10)}.`
+      : poRecord.dueDate
+        ? ` Due ${poRecord.dueDate.toISOString().slice(0, 10)}.`
+        : "";
+    const supplierName = poRecord.supplier?.name
+      ? ` from ${poRecord.supplier.name}`
+      : "";
+
+    const activity = prisma.activityEvent.create({
       data: {
         tenantId,
         type: "PO",
-        message: "Supplier order marked as received/paid.",
+        message: `Order ${lineSummary}${supplierName} received on ${now
+          .toISOString()
+          .slice(0, 10)}. Total KES ${totalNumber.toLocaleString()}.${expectedText}`,
         refType: "purchaseOrder",
-        refId: po.id,
+        refId: id,
       },
     });
+
+    await prisma.$transaction([poUpdate, ...stockUpdates, activity]);
 
     return NextResponse.json({ message: "Purchase order marked paid." });
   } catch (error) {

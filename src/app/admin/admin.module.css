@@ -1,0 +1,76 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 32px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(22px, 4vw, 28px);
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: clamp(12px, 3vw, 16px);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.name {
+  margin: 0;
+  font-weight: 800;
+}
+
+.meta {
+  margin: 2px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 6px;
+  text-align: right;
+}
+
+.label {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.value {
+  margin: 0;
+  font-weight: 800;
+  font-size: 18px;
+}

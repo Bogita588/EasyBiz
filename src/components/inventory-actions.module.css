@@ -16,6 +16,9 @@
   padding: 8px 12px;
   border-radius: 10px;
   font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .toast {
@@ -42,6 +45,8 @@
   border-radius: 10px;
   font-weight: 700;
   font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
 
 .meta {
@@ -66,4 +71,15 @@
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--color-border);
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.shareButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.16);
+  border-color: rgba(37, 99, 235, 0.35);
 }

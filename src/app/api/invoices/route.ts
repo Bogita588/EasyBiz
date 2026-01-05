@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     const customer = await prisma.customer.findUnique({
       where: { id: customerId, tenantId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
 
     if (!customer) {
@@ -68,6 +68,11 @@ export async function POST(request: Request) {
       (sum, line) => sum + Number(line.lineTotal),
       0,
     );
+    const firstLine = normalizedLines[0];
+    const itemSummary =
+      normalizedLines.length > 1
+        ? `${firstLine.description} (+${normalizedLines.length - 1} more)`
+        : firstLine.description;
 
     const invoice = await prisma.invoice.create({
       data: {
@@ -108,7 +113,7 @@ export async function POST(request: Request) {
         data: {
           tenantId,
           type: "INVOICE",
-          message: "Invoice sent. Waiting for payment.",
+          message: `Invoice sent to ${customer.name ?? "customer"} for KES ${subtotal.toLocaleString()}. Items: ${itemSummary}.`,
           refType: "invoice",
           refId: invoice.id,
         },

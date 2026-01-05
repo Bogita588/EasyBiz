@@ -3,6 +3,7 @@ import styles from "./profile.module.css";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
 import { formatCurrencyKES } from "@/lib/format";
+import { CustomerForm } from "@/components/customer-form";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,19 @@ export default async function CustomerProfile({
           New invoice
         </Link>
       </header>
+
+      <section className={styles.card}>
+        <CustomerForm
+          mode="edit"
+          customerId={customer.id}
+          initial={{
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            priceTier: customer.priceTier as "RETAIL" | "WHOLESALE",
+          }}
+        />
+      </section>
 
       <section className={styles.card}>
         <div className={styles.row}>

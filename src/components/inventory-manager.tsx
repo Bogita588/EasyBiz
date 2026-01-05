@@ -15,6 +15,22 @@ type Item = {
   preferredSupplier?: { id: string; name: string } | null;
 };
 
+function itemIcon(name: string, category?: string | null, kind?: string) {
+  const key = `${category || ""} ${name}`.toLowerCase();
+  if (key.includes("oil")) return "🛢️";
+  if (key.includes("sugar")) return "🧂";
+  if (key.includes("milk")) return "🥛";
+  if (key.includes("bread") || key.includes("flour") || key.includes("maize"))
+    return "🍞";
+  if (key.includes("rice")) return "🍚";
+  if (key.includes("soap") || key.includes("detergent")) return "🧼";
+  if (key.includes("water")) return "💧";
+  if (key.includes("service")) return "💼";
+  if (key.includes("hardware") || key.includes("tool")) return "🛠️";
+  if (kind === "SERVICE") return "💼";
+  return "📦";
+}
+
 type Props = {
   initialItems: Item[];
   suppliers: Supplier[];
@@ -182,19 +198,22 @@ export function InventoryManager({ initialItems, suppliers }: Props) {
           return (
             <article key={item.id} className={styles.card}>
               <div className={styles.cardTop}>
-                <div>
-                  <p className={styles.name}>{item.name}</p>
-                  <p className={styles.meta}>
-                    {item.kind.toLowerCase()} • {item.category || "Uncategorized"}
-                  </p>
-                  <p className={styles.meta}>
-                    In stock: {item.stockQuantity} • Low at {item.lowStockThreshold}
-                  </p>
-                  {item.preferredSupplier && (
-                    <p className={styles.meta}>Supplier: {item.preferredSupplier.name}</p>
-                  )}
+                <div className={styles.iconBadge}>{itemIcon(item.name, item.category, item.kind)}</div>
+                <div className={styles.cardTopBody}>
+                  <div>
+                    <p className={styles.name}>{item.name}</p>
+                    <p className={styles.meta}>
+                      {item.kind.toLowerCase()} • {item.category || "Uncategorized"}
+                    </p>
+                    <p className={styles.meta}>
+                      In stock: {item.stockQuantity} • Low at {item.lowStockThreshold}
+                    </p>
+                    {item.preferredSupplier && (
+                      <p className={styles.meta}>Supplier: {item.preferredSupplier.name}</p>
+                    )}
+                  </div>
+                  {isLow && <span className={styles.badge}>Low</span>}
                 </div>
-                {isLow && <span className={styles.badge}>Low</span>}
               </div>
               <div className={styles.inlineControls}>
                 <label className={styles.label}>

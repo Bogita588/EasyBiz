@@ -25,10 +25,12 @@ export function InventoryActions({
   const [qty, setQty] = useState<number>(suggestedQty);
   const [needBy, setNeedBy] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
+  const [unitCost, setUnitCost] = useState<string>("");
   const [selectedSupplier, setSelectedSupplier] = useState<string | undefined>(
     supplierId ?? suppliers[0]?.id,
   );
   const [lastPo, setLastPo] = useState<{ id: string } | null>(null);
+  const [open, setOpen] = useState(false);
   const currentSupplier = () =>
     suppliers.find((s) => s.id === selectedSupplier);
 
@@ -55,14 +57,19 @@ export function InventoryActions({
           quantity: qty,
           supplierId: selectedSupplier,
           needBy: needBy || undefined,
-          unitCost: 0,
+          unitCost: unitCost ? Number(unitCost) : undefined,
           dueDate: dueDate || undefined,
         }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setLastPo({ id: data.purchaseOrderId });
-      setMessage(`Order placed for ${qty} × ${itemName}.`);
+      const expectText = needBy ? `, expected ${needBy}` : dueDate ? `, due ${dueDate}` : "";
+      const priceText = unitCost ? ` at KES ${Number(unitCost).toLocaleString()} each` : "";
+      setMessage(
+        data?.message ||
+          `Order for ${qty} × ${itemName}${expectText}${priceText} has been placed.`,
+      );
       router.refresh();
     } catch {
       setMessage("Could not place order. Try again.");
@@ -73,60 +80,81 @@ export function InventoryActions({
 
   return (
     <div className={styles.wrapper}>
-      <div className={styles.inputs}>
-        <label className={styles.label}>
-          Quantity
-          <input
-            className={styles.input}
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => setQty(Number(e.target.value) || 0)}
-          />
-        </label>
-        <label className={styles.label}>
-          Due date
-          <input
-            className={styles.input}
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-        </label>
-        <label className={styles.label}>
-          Need by
-          <input
-            className={styles.input}
-            type="date"
-            value={needBy}
-            onChange={(e) => setNeedBy(e.target.value)}
-          />
-        </label>
-        <label className={styles.label}>
-          Supplier
-          <select
-            className={styles.input}
-            value={selectedSupplier}
-            onChange={(e) => setSelectedSupplier(e.target.value)}
-          >
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className={styles.actions}>
-        <button
-          type="button"
-          onClick={reorder}
-          disabled={busy}
-          className={styles.primary}
-        >
-          Place order
-        </button>
-      </div>
+      <button
+        type="button"
+        className={styles.primary}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open ? "Hide order form" : "Reorder from supplier"}
+      </button>
+      {open && (
+        <>
+          <div className={styles.inputs}>
+            <label className={styles.label}>
+              Quantity
+              <input
+                className={styles.input}
+                type="number"
+                min={1}
+                value={qty}
+                onChange={(e) => setQty(Number(e.target.value) || 0)}
+              />
+            </label>
+            <label className={styles.label}>
+              Due date
+              <input
+                className={styles.input}
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </label>
+            <label className={styles.label}>
+              Need by
+              <input
+                className={styles.input}
+                type="date"
+                value={needBy}
+                onChange={(e) => setNeedBy(e.target.value)}
+              />
+            </label>
+            <label className={styles.label}>
+              Unit cost (KES)
+              <input
+                className={styles.input}
+                type="number"
+                min={0}
+                value={unitCost}
+                onChange={(e) => setUnitCost(e.target.value)}
+              />
+            </label>
+            <label className={styles.label}>
+              Supplier
+              <select
+                className={styles.input}
+                value={selectedSupplier}
+                onChange={(e) => setSelectedSupplier(e.target.value)}
+              >
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              onClick={reorder}
+              disabled={busy}
+              className={styles.primary}
+            >
+              Place order
+            </button>
+          </div>
+        </>
+      )}
       {message && <div className={styles.toast}>{message}</div>}
       {lastPo && (
         <div className={styles.shareRow}>
@@ -136,7 +164,9 @@ export function InventoryActions({
               href={`https://wa.me/${currentSupplier()?.whatsapp}?text=${encodeURIComponent(
                 `Purchase order ${lastPo.id} for ${qty} × ${itemName}.${
                   needBy ? ` Need by ${needBy}.` : ""
-                }${dueDate ? ` Due ${dueDate}.` : ""}`,
+                }${dueDate ? ` Due ${dueDate}.` : ""}${
+                  unitCost ? ` Unit cost KES ${Number(unitCost).toLocaleString()}.` : ""
+                }`,
               )}`}
               target="_blank"
               rel="noreferrer"
@@ -162,14 +192,16 @@ export function InventoryActions({
             href={`mailto:${currentSupplier()?.email || ""}?subject=Purchase%20Order%20${lastPo.id}&body=${encodeURIComponent(
               `Hi,\n\nHere is purchase order ${lastPo.id} for ${qty} × ${itemName}.${
                 needBy ? ` Need by ${needBy}.` : ""
-              }${dueDate ? ` Due ${dueDate}.` : ""}\n\nThank you.`,
+              }${dueDate ? ` Due ${dueDate}.` : ""}${
+                unitCost ? ` Unit cost KES ${Number(unitCost).toLocaleString()}.` : ""
+              }\n\nThank you.`,
             )}`}
           >
             Send PO via Email
           </a>
           {currentSupplier()?.phone && (
             <span className={styles.meta}>
-              Call/SMS: {currentSupplier()?.phone}
+              Call/SMS: <a href={`tel:${currentSupplier()?.phone}`}>{currentSupplier()?.phone}</a>
             </span>
           )}
         </div>

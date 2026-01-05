@@ -3,6 +3,7 @@ import styles from "./customers.module.css";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
 import { formatCurrencyKES } from "@/lib/format";
+import { CustomerForm } from "@/components/customer-form";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,9 @@ export default async function CustomersPage() {
       </header>
 
       <div className={styles.list}>
+        <div className={styles.card}>
+          <CustomerForm />
+        </div>
         {enriched.map((customer) => (
           <Link
             href={`/customers/${customer.id}`}

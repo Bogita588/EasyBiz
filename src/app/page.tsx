@@ -47,6 +47,9 @@ export default async function Home() {
           </p>
         </div>
         <span className={styles.badge}>Offline-ready</span>
+        <a className={styles.download} href="/api/reports/daily">
+          Download daily CSV
+        </a>
       </header>
 
       <div className={styles.columns}>

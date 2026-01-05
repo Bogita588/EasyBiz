@@ -27,10 +27,25 @@
   padding: 10px 14px;
   border-radius: 12px;
   font-weight: 700;
+  text-align: center;
 }
 
 .status {
   margin: 0;
   font-size: 13px;
   color: var(--color-muted);
+}
+
+.shareRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.helper {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+  font-weight: 600;
 }

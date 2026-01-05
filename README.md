@@ -37,12 +37,12 @@ North star: If a Kenyan SME owner can use WhatsApp, they can run their business 
   - BE: `POST /api/payments/mpesa/request`, `POST /api/payments/mpesa/webhook` (confirm), `PATCH /api/invoices/:id/mark-paid`.
   - QA: auto reconcile payment to invoice; feed shows "Payment received. All settled."
 - Stage 5: Inventory alerts and PO
-  - FE: feed cards like "Sugar is running low. Reorder?" with primary `Reorder`, secondary `Remind me later`; one-tap PO confirm.
-  - BE: `GET /api/inventory/alerts`, `POST /api/purchase-orders`, stock adjustments on invoice creation.
-  - QA: low-stock thresholds enforced server-side; actions idempotent.
+  - FE: feed cards like "Sugar is running low. Reorder?" with primary `Reorder`, secondary `Remind me later`; one-tap PO confirm and share via WhatsApp/Email using supplier contacts.
+  - BE: `GET /api/inventory/alerts`, `POST /api/purchase-orders`, `POST /api/purchase-orders/:id/mark-paid`, stock adjustments on invoice creation.
+  - QA: low-stock thresholds enforced server-side; actions idempotent; payables reflected on Home and Money.
 - Stage 6: Finance Q&A (summaries only)
   - FE: `/money` tile cards answering "Did I make money this week?", "Who owes me?", "How much cash do I have?"; `Send reminder` buttons.
-  - BE: `GET /api/finance/profit-week`, `GET /api/finance/receivables`, `GET /api/finance/cash`, `POST /api/reminders`.
+  - BE: `GET /api/finance/profit-week`, `GET /api/finance/receivables`, `GET /api/finance/cash`, `GET /api/finance/payables`, `POST /api/reminders`.
   - QA: no ledgers exposed by default; natural-language responses.
 - Stage 7: Observability, security, rollout
   - FE: error boundaries with humanized errors; event sampling for UX metrics.
@@ -97,6 +97,11 @@ North star: If a Kenyan SME owner can use WhatsApp, they can run their business 
   - `POST /api/invoices/:id/send` -> triggers delivery + feed event
   - `GET /api/invoices/:id` -> detail with status, items, payments
   - `PATCH /api/invoices/:id/mark-paid` -> manual payment
+- Suppliers and purchase orders
+  - `GET /api/suppliers` / `POST /api/suppliers`
+  - `POST /api/purchase-orders` -> create PO with supplier contact + need-by/due
+  - `PATCH /api/purchase-orders/:id/mark-paid` -> reconcile outbound payment
+  - Alerts + PO events surface on Home/Activity and Money payables
 - Payments (M-Pesa)
   - `POST /api/payments/mpesa/request` -> STK push, returns requestId and status
   - `POST /api/payments/mpesa/webhook` -> receives confirmation, reconciles invoice, emits feed event

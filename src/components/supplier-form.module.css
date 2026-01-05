@@ -34,3 +34,12 @@
   font-size: 13px;
   color: var(--color-muted);
 }
+
+.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecdd3;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+}
