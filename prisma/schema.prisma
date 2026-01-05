@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id             String           @id @default(uuid())
+  name           String
+  businessType   String?
+  mpesaTill      String?
+  mpesaPaybill   String?
+  mpesaPochi     String?
+  acceptsCash    Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  users          User[]
+  customers      Customer[]
+  items          Item[]
+  invoices       Invoice[]
+  payments       Payment[]
+  suppliers      Supplier[]
+  purchaseOrders PurchaseOrder[]
+  activityEvents ActivityEvent[]
+}
+
+model User {
+  id        String    @id @default(uuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  name      String?
+  email     String?
+  phone     String?
+  role      UserRole  @default(ATTENDANT)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model Customer {
+  id         String      @id @default(uuid())
+  tenantId   String
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  name       String
+  phone      String?
+  priceTier  PriceTier   @default(RETAIL)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  invoices   Invoice[]
+
+  @@index([tenantId])
+}
+
+model Item {
+  id                String               @id @default(uuid())
+  tenantId          String
+  tenant            Tenant               @relation(fields: [tenantId], references: [id])
+  name              String
+  description       String?
+  price             Decimal              @db.Decimal(12, 2)
+  wholesalePrice    Decimal?             @db.Decimal(12, 2)
+  sku               String?
+  stockQuantity     Int                  @default(0)
+  lowStockThreshold Int                  @default(5)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  invoiceLines      InvoiceLine[]
+  purchaseOrderLines PurchaseOrderLine[]
+
+  @@index([tenantId])
+}
+
+model Invoice {
+  id          String         @id @default(uuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
+  customerId  String?
+  customer    Customer?      @relation(fields: [customerId], references: [id])
+  status      InvoiceStatus  @default(DRAFT)
+  issuedAt    DateTime       @default(now())
+  dueDate     DateTime?
+  subtotal    Decimal        @db.Decimal(12, 2)
+  taxTotal    Decimal        @db.Decimal(12, 2) @default(0)
+  discount    Decimal        @db.Decimal(12, 2) @default(0)
+  total       Decimal        @db.Decimal(12, 2)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  lines       InvoiceLine[]
+  payments    Payment[]
+
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+model InvoiceLine {
+  id          String    @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id])
+  itemId      String?
+  item        Item?     @relation(fields: [itemId], references: [id])
+  description String
+  quantity    Int       @default(1)
+  unitPrice   Decimal   @db.Decimal(12, 2)
+  lineTotal   Decimal   @db.Decimal(12, 2)
+}
+
+model Payment {
+  id           String         @id @default(uuid())
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id])
+  invoiceId    String?
+  invoice      Invoice?       @relation(fields: [invoiceId], references: [id])
+  method       PaymentMethod
+  status       PaymentStatus  @default(PENDING)
+  amount       Decimal        @db.Decimal(12, 2)
+  mpesaReceipt String?
+  requestedAt  DateTime?
+  confirmedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([tenantId])
+  @@index([invoiceId])
+}
+
+model Supplier {
+  id         String          @id @default(uuid())
+  tenantId   String
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
+  name       String
+  phone      String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  orders     PurchaseOrder[]
+
+  @@index([tenantId])
+}
+
+model PurchaseOrder {
+  id         String                @id @default(uuid())
+  tenantId   String
+  tenant     Tenant                @relation(fields: [tenantId], references: [id])
+  supplierId String?
+  supplier   Supplier?             @relation(fields: [supplierId], references: [id])
+  status     PurchaseOrderStatus   @default(PENDING)
+  total      Decimal               @db.Decimal(12, 2)
+  dueDate    DateTime?
+  paidAt     DateTime?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  lines      PurchaseOrderLine[]
+
+  @@index([tenantId])
+  @@index([supplierId])
+}
+
+model PurchaseOrderLine {
+  id              String          @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id])
+  itemId          String?
+  item            Item?           @relation(fields: [itemId], references: [id])
+  quantity        Int
+  unitCost        Decimal         @db.Decimal(12, 2)
+}
+
+model ActivityEvent {
+  id        String        @id @default(uuid())
+  tenantId  String
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  type      ActivityType
+  message   String
+  refType   String?
+  refId     String?
+  createdAt DateTime      @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt])
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  ATTENDANT
+}
+
+enum PriceTier {
+  RETAIL
+  WHOLESALE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIAL
+  CANCELLED
+}
+
+enum PaymentMethod {
+  MPESA_TILL
+  MPESA_PAYBILL
+  MPESA_POCHI
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  ORDERED
+  RECEIVED
+  PARTIAL
+  CANCELLED
+}
+
+enum ActivityType {
+  PAYMENT
+  INVOICE
+  STOCK
+  PO
+  REMINDER
+}

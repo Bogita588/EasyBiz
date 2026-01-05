@@ -1,0 +1,68 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 32px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+}
+
+.primary {
+  background: var(--color-primary);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.meta {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.amountBlock {
+  text-align: right;
+}
+
+.amount {
+  margin: 0;
+  font-weight: 700;
+}

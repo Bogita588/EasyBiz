@@ -1,0 +1,118 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 32px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+}
+
+.primary {
+  background: var(--color-primary);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.invoiceId {
+  margin: 0;
+  font-weight: 700;
+}
+
+.customer {
+  margin: 2px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.badgeSuccess {
+  background: #ecfdf3;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.badgeInfo {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.rowBetween {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.amount {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inlineForm {
+  margin: 0;
+}
+
+.linkButton {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ghost {
+  color: var(--color-muted);
+  font-weight: 600;
+  text-decoration: underline;
+}

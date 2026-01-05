@@ -1,0 +1,16 @@
+{
+  "name": "EasyBiz",
+  "short_name": "EasyBiz",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f7fb",
+  "theme_color": "#0f9d58",
+  "description": "WhatsApp-smooth ERP for Kenyan SMEs.",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

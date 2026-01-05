@@ -1,0 +1,195 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 32px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  border: 1px solid var(--color-border);
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pillActive {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.line {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lineTop,
+.lineBottom {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.input,
+.select {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.select {
+  min-width: 180px;
+}
+
+.remove {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.rowBetween {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.helper {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.status {
+  color: var(--color-muted);
+  font-weight: 600;
+  margin: 0;
+}
+
+.shareCard {
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.shareRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shareButton {
+  background: #ecfdf3;
+  border: 1px solid #86efac;
+  color: #166534;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.primary {
+  border: none;
+  background: var(--color-primary);
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary {
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.linkButton {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ghostLink {
+  color: var(--color-muted);
+  font-weight: 600;
+  text-decoration: underline;
+}

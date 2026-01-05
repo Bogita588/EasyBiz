@@ -1,0 +1,173 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(15, 157, 88, 0.15);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .row {
+    flex-direction: row;
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pillRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  border: 1px solid var(--color-border);
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pillActive {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.helper {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.ready {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-muted);
+  font-size: 15px;
+}
+
+.ready ul {
+  padding-left: 18px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status {
+  color: #b91c1c;
+  font-size: 14px;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.secondary {
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.ghost {
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remove {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.primary {
+  border: none;
+  background: var(--color-primary);
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(15, 157, 88, 0.25);
+}
