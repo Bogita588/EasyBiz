@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "./invoice-quick-actions.module.css";
+import { useEffect } from "react";
 
 type InvoiceQuickActionsProps = {
   invoiceId: string;
   amount: number;
-  status: "PAID" | "WAITING" | "SENT" | "DRAFT" | "PARTIAL";
+  status: "PAID" | "WAITING" | "SENT" | "DRAFT" | "PARTIAL" | "CANCELLED";
   onStatusChange?: (status: InvoiceQuickActionsProps["status"]) => void;
 };
 
@@ -21,6 +22,12 @@ export function InvoiceQuickActions({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const isPaid = status === "PAID";
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(null), 2500);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   const updateStatus = (next: InvoiceQuickActionsProps["status"]) => {
     onStatusChange?.(next);
@@ -88,7 +95,11 @@ export function InvoiceQuickActions({
           Mark paid
         </button>
       </div>
-      {message && <p className={styles.message}>{message}</p>}
+      {message && (
+        <div className={styles.toastContainer}>
+          <div className={styles.toast}>{message}</div>
+        </div>
+      )}
     </div>
   );
 }

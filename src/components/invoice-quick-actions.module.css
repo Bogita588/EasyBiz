@@ -1,0 +1,41 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.linkButton {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.toastContainer {
+  position: fixed;
+  right: 16px;
+  bottom: 20px;
+  z-index: 50;
+}
+
+.toast {
+  background: #0f172a;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+  font-weight: 600;
+}

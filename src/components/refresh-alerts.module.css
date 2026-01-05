@@ -1,0 +1,21 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.button {
+  border: 1px solid var(--color-border);
+  background: #e6f0ff;
+  color: #1d4ed8;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
