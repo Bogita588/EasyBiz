@@ -13,7 +13,8 @@ type POLine = {
 type PO = {
   id: string;
   status: string;
-  total: unknown;
+  total: number;
+  paidAmount: number;
   needBy: string | null;
   dueDate: string | null;
   paidAt: string | null;
@@ -75,11 +76,13 @@ export function InventoryPOList({ purchaseOrders }: Props) {
           const isDelayed =
             po.needBy && !po.paidAt && new Date(po.needBy) < new Date();
           const amountValue = amounts[po.id] ?? "";
+          const balance = Math.max(0, po.total - po.paidAmount);
+          const paidFull = balance === 0;
           return (
             <div key={po.id} className={styles.poRow}>
               <div>
                 <p className={styles.name}>
-                  {po.supplier?.name || "Supplier"} • {po.status}
+                  {po.supplier?.name || "Supplier"} • {paidFull ? "Paid in full" : po.status}
                   {isDelayed && <span className={styles.late}>Delayed</span>}
                 </p>
                 <p className={styles.meta}>
@@ -88,14 +91,22 @@ export function InventoryPOList({ purchaseOrders }: Props) {
                   {Number(po.total || 0).toLocaleString()}
                 </p>
                 <p className={styles.meta}>
+                  Paid KES {po.paidAmount.toLocaleString()} / {po.total.toLocaleString()} • Balance KES{" "}
+                  {balance.toLocaleString()}
+                </p>
+                <p className={styles.meta}>
                   Need by {needByStr} • Due {dueStr} • Created {createdStr}
                 </p>
               </div>
-                <div className={styles.statusBlock}>
-                  <span className={styles.statusPill}>{po.status}</span>
-                  <span className={styles.meta}>
-                    {po.paidAt ? `Received ${po.paidAt.slice(0, 10)}` : "Not received"}
-                  </span>
+              <div className={styles.statusBlock}>
+                <span className={styles.statusPill}>{po.status}</span>
+                <span className={styles.meta}>
+                  {paidFull
+                    ? `Paid in full ${po.paidAt ? po.paidAt.slice(0, 10) : ""}`.trim()
+                    : po.paidAt
+                      ? `Received ${po.paidAt.slice(0, 10)}`
+                      : "Not received"}
+                </span>
                 {!po.paidAt && (
                   <>
                     <label className={styles.label}>

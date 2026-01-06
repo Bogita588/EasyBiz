@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { parseRole, parseTenant, isAllowed, type UserRole } from "./src/lib/auth";
+import { parseRole, parseTenant, parseTenantStatus, isAllowed, type UserRole } from "./src/lib/auth";
 
 const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
   { pattern: /^\/admin/i, allowed: ["OWNER"] },
+  { pattern: /^\/api\/admin/i, allowed: ["OWNER"] },
   { pattern: /^\/settings/i, allowed: ["OWNER"] },
   { pattern: /^\/suppliers/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/inventory/i, allowed: ["OWNER", "MANAGER"] },
@@ -19,14 +20,48 @@ const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
 export function middleware(request: NextRequest) {
   const role = parseRole(request.headers);
   const tenantId = parseTenant(request.headers);
+  const tenantStatus = parseTenantStatus(request.headers);
   const path = request.nextUrl.pathname;
+
+  // Force landing page to registration choice.
+  if (path === "/") {
+    return NextResponse.redirect(new URL("/register", request.url));
+  }
+
+  // Admin routes can run without tenant context (used for provisioning) but require admin role.
+  if (/^\/admin/i.test(path) || /^\/api\/admin/i.test(path)) {
+    if (role !== "ADMIN" && role !== "OWNER") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // If already authenticated and hits auth/register pages, send to appropriate area.
+  if (tenantId && (path === "/register" || path === "/login")) {
+    if (tenantStatus === "PENDING") {
+      return NextResponse.redirect(new URL("/access/pending", request.url));
+    }
+    if (tenantStatus === "SUSPENDED") {
+      return NextResponse.redirect(new URL("/access/suspended", request.url));
+    }
+    return NextResponse.redirect(new URL("/home", request.url));
+  }
 
   // Require tenant identifier in prod; allow fallback in local/dev.
   if (!tenantId) {
-    return NextResponse.json(
-      { error: "Missing tenant context. Provide X-Tenant-Id or set DEFAULT_TENANT_ID." },
-      { status: 400 },
-    );
+    // If user is on login/register routes, allow through.
+    if (/^\/login/i.test(path) || /^\/signup/i.test(path) || /^\/register/i.test(path)) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/register", request.url));
+  }
+
+  // Block ERP if tenant not active.
+  if (tenantStatus === "PENDING") {
+    return NextResponse.redirect(new URL("/access/pending", request.url));
+  }
+  if (tenantStatus === "SUSPENDED") {
+    return NextResponse.redirect(new URL("/access/suspended", request.url));
   }
 
   for (const rule of roleRules) {

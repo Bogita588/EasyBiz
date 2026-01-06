@@ -11,14 +11,16 @@ export async function PATCH(
     const { id } = await params;
     const tenantId = await getTenantId();
     const body = await request.json();
-    const amount = body?.amount !== undefined && body?.amount !== null
-      ? new Prisma.Decimal(body.amount)
-      : null;
+    const amount =
+      body?.amount !== undefined && body?.amount !== null
+        ? new Prisma.Decimal(body.amount)
+        : null;
 
     const poRecord = await prisma.purchaseOrder.findUnique({
       where: { id, tenantId },
       select: {
         total: true,
+        paidAmount: true,
         needBy: true,
         dueDate: true,
         lines: {
@@ -36,22 +38,28 @@ export async function PATCH(
       return NextResponse.json({ error: "PO not found." }, { status: 404 });
     }
 
+    const currentPaid = poRecord.paidAmount ? Number(poRecord.paidAmount) : 0;
+    const totalNumber = poRecord.total ? Number(poRecord.total) : 0;
+    const incoming = amount ? Number(amount) : 0;
+    const newPaid = Math.min(totalNumber, currentPaid + incoming);
     const status =
-      amount && poRecord.total && amount.lt(poRecord.total)
-        ? "PARTIAL"
-        : "RECEIVED";
+      newPaid >= totalNumber && totalNumber > 0
+        ? "RECEIVED"
+        : amount
+          ? "PARTIAL"
+          : "RECEIVED";
 
     const now = new Date();
-    const setPaidAt =
-      status === "RECEIVED" && amount && poRecord.total && !amount.lt(poRecord.total);
+    const setPaidAt = status === "RECEIVED" && newPaid >= totalNumber && totalNumber > 0;
 
     const poUpdate = prisma.purchaseOrder.update({
       where: { id, tenantId },
       data: {
         status,
         paidAt: setPaidAt ? now : null,
+        paidAmount: new Prisma.Decimal(newPaid),
       },
-      select: { id: true, total: true },
+      select: { id: true, total: true, paidAmount: true },
     });
 
     const stockUpdates = poRecord.lines
@@ -67,12 +75,22 @@ export async function PATCH(
     const lineSummary = firstLine
       ? `${firstLine.quantity} × ${firstLine.item?.name || "item"}`
       : "order";
-    const totalNumber = poRecord.total ? Number(poRecord.total) : 0;
-    const expectedText = poRecord.needBy
-      ? ` Expected by ${poRecord.needBy.toISOString().slice(0, 10)}.`
-      : poRecord.dueDate
-        ? ` Due ${poRecord.dueDate.toISOString().slice(0, 10)}.`
-        : "";
+    let expectedText = "";
+    if (poRecord.needBy) {
+      const expected = poRecord.needBy.toISOString().slice(0, 10);
+      if (now <= poRecord.needBy) {
+        expectedText = ` Delivered early (before ${expected}).`;
+      } else {
+        expectedText = ` Delivered late (after ${expected}).`;
+      }
+    } else if (poRecord.dueDate) {
+      const due = poRecord.dueDate.toISOString().slice(0, 10);
+      if (now <= poRecord.dueDate) {
+        expectedText = ` Delivered early (before ${due}).`;
+      } else {
+        expectedText = ` Delivered late (after ${due}).`;
+      }
+    }
     const supplierName = poRecord.supplier?.name
       ? ` from ${poRecord.supplier.name}`
       : "";
@@ -83,7 +101,7 @@ export async function PATCH(
         type: "PO",
         message: `Order ${lineSummary}${supplierName} received on ${now
           .toISOString()
-          .slice(0, 10)}. Total KES ${totalNumber.toLocaleString()}.${expectedText}`,
+          .slice(0, 10)}. Paid KES ${newPaid.toLocaleString()} of ${totalNumber.toLocaleString()}.${expectedText}`,
         refType: "purchaseOrder",
         refId: id,
       },

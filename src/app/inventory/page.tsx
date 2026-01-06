@@ -29,33 +29,61 @@ export default async function InventoryPage() {
     });
   }
 
-  const purchaseOrdersRaw = await prisma.purchaseOrder.findMany({
-    where: { tenantId },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-    select: {
-      id: true,
-      status: true,
-      total: true,
+  let purchaseOrdersRaw;
+  try {
+    purchaseOrdersRaw = await prisma.purchaseOrder.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        status: true,
+        total: true,
+        paidAmount: true,
         needBy: true,
         dueDate: true,
         paidAt: true,
         createdAt: true,
         supplier: { select: { name: true } },
-      lines: {
-        select: {
-          quantity: true,
-          unitCost: true,
-          item: { select: { name: true } },
+        lines: {
+          select: {
+            quantity: true,
+            unitCost: true,
+            item: { select: { name: true } },
+          },
         },
       },
-    },
-  });
+    });
+  } catch {
+    purchaseOrdersRaw = await prisma.purchaseOrder.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        status: true,
+        total: true,
+        needBy: true,
+        dueDate: true,
+        paidAt: true,
+        createdAt: true,
+        supplier: { select: { name: true } },
+        lines: {
+          select: {
+            quantity: true,
+            unitCost: true,
+            item: { select: { name: true } },
+          },
+        },
+      },
+    });
+  }
 
   const purchaseOrders = purchaseOrdersRaw.map((po) => ({
     id: po.id,
     status: po.status,
     total: Number(po.total || 0),
+    paidAmount: Number((po as { paidAmount?: unknown }).paidAmount || 0),
     needBy: po.needBy ? po.needBy.toISOString() : null,
     dueDate: po.dueDate ? po.dueDate.toISOString() : null,
     paidAt: po.paidAt ? po.paidAt.toISOString() : null,

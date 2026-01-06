@@ -55,6 +55,7 @@ export async function POST(request: Request) {
         tenantId,
         status: "ORDERED",
         total,
+        paidAmount: new Prisma.Decimal(0),
         supplierId,
         needBy: needBy ?? undefined,
         dueDate: dueDate ?? undefined,

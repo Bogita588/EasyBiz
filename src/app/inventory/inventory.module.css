@@ -217,6 +217,16 @@
   font-weight: 700;
 }
 
+.late {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 12px;
+}
+
 .poActions {
   display: flex;
   flex-wrap: wrap;

@@ -5,6 +5,7 @@ import Script from "next/script";
 import "./globals.css";
 import { ServiceWorkerClient } from "@/components/service-worker-client";
 import { PerformanceGuard } from "@/components/performance-guard";
+import { TenantStatusGuard } from "@/components/tenant-status-guard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,13 +53,17 @@ export default function RootLayout({
               <Link href="/invoices">Invoices</Link>
               <Link href="/customers">Customers</Link>
               <Link href="/suppliers">Suppliers</Link>
+              <Link href="/inventory">Inventory</Link>
             </nav>
           </header>
-          <div className="app-content">{children}</div>
+          <div className="app-content">
+            {children}
+          </div>
         </div>
         {/* Registers the placeholder service worker; offline queueing will be wired in next stages. */}
         <ServiceWorkerClient />
         <PerformanceGuard />
+        <TenantStatusGuard />
       </body>
     </html>
   );

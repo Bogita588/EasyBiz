@@ -1,14 +1,20 @@
 import { Prisma } from "@prisma/client";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { ensureStockEvents } from "./stock";
 
 export async function getTenantId() {
-  if (process.env.DEFAULT_TENANT_ID) return process.env.DEFAULT_TENANT_ID;
-  const first = await prisma.tenant.findFirst({ select: { id: true } });
-  if (!first) {
-    throw new Error("No tenant found. Seed the database first.");
+  const cookieStore = await cookies();
+  const raw = cookieStore.get("ez_session")?.value;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
+      if (parsed?.tenantId) return parsed.tenantId as string;
+    } catch {
+      // fallthrough
+    }
   }
-  return first.id;
+  throw new Error("Missing tenant context. Please log in.");
 }
 
 export async function getSummary() {

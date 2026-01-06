@@ -11,6 +11,8 @@ export default async function MoneyPage() {
   const receivables = await getReceivables(tenantId);
   const cash = await getCash(tenantId);
   const payables = await getPayables(tenantId);
+  const customerPayments = await getRecentCustomerPayments(tenantId);
+  const supplierPayments = await getSupplierPayments(tenantId);
 
   return (
     <div className={styles.screen}>
@@ -57,6 +59,55 @@ export default async function MoneyPage() {
           </p>
         </article>
       </div>
+
+      <section className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <h2 className={styles.panelTitle}>Customer payments</h2>
+          <span className={styles.panelHint}>Latest receipts</span>
+        </div>
+        <div className={styles.list}>
+          {customerPayments.map((p) => (
+            <div key={p.id} className={styles.row}>
+              <div>
+                <p className={styles.rowTitle}>{p.customer || "Customer"}</p>
+                <p className={styles.rowMeta}>
+                  {p.method} • {p.time}
+                </p>
+              </div>
+              <p className={styles.rowValue}>{formatCurrencyKES(p.amount)}</p>
+            </div>
+          ))}
+          {customerPayments.length === 0 && (
+            <p className={styles.meta}>No recent payments.</p>
+          )}
+        </div>
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <h2 className={styles.panelTitle}>Supplier payments</h2>
+          <span className={styles.panelHint}>Full or partial</span>
+        </div>
+        <div className={styles.list}>
+          {supplierPayments.map((p) => (
+            <div key={p.id} className={styles.row}>
+              <div>
+                <p className={styles.rowTitle}>{p.supplier || "Supplier"}</p>
+                <p className={styles.rowMeta}>
+                  {p.status} • {p.time}
+                </p>
+                <p className={styles.rowMeta}>
+                  Paid {formatCurrencyKES(p.paid)} / {formatCurrencyKES(p.total)}
+                </p>
+              </div>
+              <p className={styles.rowValue}>{formatCurrencyKES(p.paid)}</p>
+            </div>
+          ))}
+          {supplierPayments.length === 0 && (
+            <p className={styles.meta}>No supplier payments yet.</p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
@@ -112,13 +163,18 @@ async function getCash(tenantId: string) {
 
 async function getPayables(tenantId: string) {
   const pos = await prisma.purchaseOrder.findMany({
-    where: { tenantId, paidAt: null },
-    select: { total: true, supplier: { select: { name: true } } },
+    where: { tenantId },
+    select: { total: true, paidAmount: true, supplier: { select: { name: true } } },
   });
-  const total = pos.reduce((sum, po) => sum + Number(po.total || 0), 0);
-  const grouped = pos.reduce<Record<string, number>>((map, po) => {
-    const name = po.supplier?.name || "Supplier";
-    map[name] = (map[name] || 0) + Number(po.total || 0);
+  const outstandingList = pos.map((po) => {
+    const total = Number(po.total || 0);
+    const paid = Number(po.paidAmount || 0);
+    return { supplier: po.supplier?.name || "Supplier", outstanding: Math.max(0, total - paid) };
+  });
+  const total = outstandingList.reduce((sum, po) => sum + po.outstanding, 0);
+  const grouped = outstandingList.reduce<Record<string, number>>((map, po) => {
+    const name = po.supplier;
+    map[name] = (map[name] || 0) + po.outstanding;
     return map;
   }, {});
   const topSuppliers = Object.entries(grouped)
@@ -126,4 +182,58 @@ async function getPayables(tenantId: string) {
     .slice(0, 3)
     .map(([name, amount]) => ({ name, amount }));
   return { total, topSuppliers };
+}
+
+async function getRecentCustomerPayments(tenantId: string) {
+  const payments = await prisma.payment.findMany({
+    where: { tenantId, status: "CONFIRMED" },
+    orderBy: { confirmedAt: "desc" },
+    take: 10,
+    select: {
+      id: true,
+      amount: true,
+      method: true,
+      confirmedAt: true,
+      createdAt: true,
+      invoice: { select: { customer: { select: { name: true } } } },
+    },
+  });
+  return payments.map((p) => ({
+    id: p.id,
+    amount: Number(p.amount || 0),
+    method: p.method,
+    customer: p.invoice?.customer?.name,
+    time: (p.confirmedAt || p.createdAt).toLocaleString(),
+  }));
+}
+
+async function getSupplierPayments(tenantId: string) {
+  const pos = await prisma.purchaseOrder.findMany({
+    where: { tenantId, paidAmount: { gt: 0 } },
+    orderBy: { updatedAt: "desc" },
+    take: 10,
+    select: {
+      id: true,
+      total: true,
+      paidAmount: true,
+      paidAt: true,
+      updatedAt: true,
+      supplier: { select: { name: true } },
+    },
+  });
+
+  return pos.map((po) => {
+    const total = Number(po.total || 0);
+    const paid = Number(po.paidAmount || 0);
+    const status = paid >= total ? "Paid in full" : "Partial";
+    const ts = po.paidAt || po.updatedAt;
+    return {
+      id: po.id,
+      supplier: po.supplier?.name,
+      total,
+      paid,
+      status,
+      time: ts.toLocaleString(),
+    };
+  });
 }

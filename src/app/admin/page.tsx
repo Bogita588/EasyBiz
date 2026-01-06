@@ -1,21 +1,45 @@
 import styles from "./admin.module.css";
 import { prisma } from "@/lib/prisma";
+import { AdminTenantForm } from "@/components/admin-tenant-form";
+import { AdminStatusButtons } from "@/components/admin-status-buttons";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const tenants = await prisma.tenant.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      businessType: true,
-      createdAt: true,
-      users: { select: { id: true, role: true } },
-      invoices: { select: { id: true } },
-      purchaseOrders: { select: { id: true, paidAt: true } },
-    },
-  });
+  let tenants;
+  try {
+    tenants = await prisma.tenant.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        businessType: true,
+        createdAt: true,
+        users: { select: { id: true, role: true } },
+        invoices: { select: { id: true } },
+        purchaseOrders: { select: { id: true, paidAt: true } },
+      },
+    });
+  } catch {
+    tenants = await prisma.tenant.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        businessType: true,
+        createdAt: true,
+        users: { select: { id: true, role: true } },
+        invoices: { select: { id: true } },
+        purchaseOrders: { select: { id: true, paidAt: true } },
+      },
+    }).then((list) =>
+      list.map((t) => ({
+        ...t,
+        status: "UNKNOWN",
+      })),
+    );
+  }
 
   return (
     <div className={styles.screen}>
@@ -26,6 +50,8 @@ export default async function AdminPage() {
           <p className={styles.subtitle}>Audit tenants, users, invoices, and supplier orders.</p>
         </div>
       </header>
+
+      <AdminTenantForm />
 
       <div className={styles.list}>
         {tenants.map((tenant) => {
@@ -38,7 +64,7 @@ export default async function AdminPage() {
                 <p className={styles.name}>{tenant.name}</p>
                 <p className={styles.meta}>
                   {tenant.businessType || "Unknown type"} • Created{" "}
-                  {tenant.createdAt.toISOString().slice(0, 10)}
+                  {tenant.createdAt.toISOString().slice(0, 10)} • Status {tenant.status}
                 </p>
                 <p className={styles.meta}>Users: {tenant.users.length}</p>
               </div>
@@ -54,6 +80,19 @@ export default async function AdminPage() {
                   </p>
                 </div>
               </div>
+              <AdminStatusButtons
+                tenantId={tenant.id}
+                initialStatus={
+                  (tenant as { status?: string }).status === "ACTIVE" ||
+                  (tenant as { status?: string }).status === "PENDING" ||
+                  (tenant as { status?: string }).status === "SUSPENDED"
+                    ? ((tenant as { status?: "ACTIVE" | "PENDING" | "SUSPENDED" }).status as
+                        | "ACTIVE"
+                        | "PENDING"
+                        | "SUSPENDED")
+                    : "UNKNOWN"
+                }
+              />
             </article>
           );
         })}
