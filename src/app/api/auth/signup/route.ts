@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createHash } from "crypto";
+import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +22,8 @@ export async function POST(request: Request) {
       return NextResponse.redirect(new URL("/signup?error=password_mismatch", base));
     }
 
+    const hash = await bcrypt.hash(password, 10);
+
     const tenant = await prisma.tenant.create({
       data: {
         name: business,
@@ -38,19 +40,15 @@ export async function POST(request: Request) {
         email,
         phone,
         role: "OWNER",
-        password: hashPassword(password),
+        password: hash,
       },
     });
 
-    return NextResponse.redirect(new URL("/access/pending", baseUrl(request)));
+    return NextResponse.redirect(new URL("/access/pending", base));
   } catch (error) {
     console.error("[POST /api/auth/signup]", error);
     return NextResponse.redirect(new URL("/signup?error=unknown", baseUrl(request)));
   }
-}
-
-function hashPassword(pw: string) {
-  return createHash("sha256").update(pw).digest("hex");
 }
 
 function baseUrl(req: Request) {

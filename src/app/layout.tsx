@@ -6,6 +6,7 @@ import "./globals.css";
 import { ServiceWorkerClient } from "@/components/service-worker-client";
 import { PerformanceGuard } from "@/components/performance-guard";
 import { TenantStatusGuard } from "@/components/tenant-status-guard";
+import SecurityFooter from "@/components/security-footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,10 +55,13 @@ export default function RootLayout({
               <Link href="/customers">Customers</Link>
               <Link href="/suppliers">Suppliers</Link>
               <Link href="/inventory">Inventory</Link>
+              <Link href="/users">Users</Link>
+              <Link href="/api/auth/logout">Logout</Link>
             </nav>
           </header>
           <div className="app-content">
             {children}
+            <SecurityFooter />
           </div>
         </div>
         {/* Registers the placeholder service worker; offline queueing will be wired in next stages. */}

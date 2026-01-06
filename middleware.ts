@@ -1,20 +1,25 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { parseRole, parseTenant, parseTenantStatus, isAllowed, type UserRole } from "./src/lib/auth";
+import { rateLimit } from "./src/middleware/rate-limit";
 
 const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
-  { pattern: /^\/admin/i, allowed: ["OWNER"] },
-  { pattern: /^\/api\/admin/i, allowed: ["OWNER"] },
+  { pattern: /^\/admin/i, allowed: ["ADMIN"] },
+  { pattern: /^\/api\/admin/i, allowed: ["ADMIN"] },
   { pattern: /^\/settings/i, allowed: ["OWNER"] },
   { pattern: /^\/suppliers/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/inventory/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/money/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/purchase-orders/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/suppliers/i, allowed: ["OWNER", "MANAGER"] },
+  { pattern: /^\/api\/items/i, allowed: ["OWNER", "MANAGER"] },
+  { pattern: /^\/api\/tenant\/seats/i, allowed: ["OWNER"] },
   // Selling/invoicing can be done by attendants too.
   { pattern: /^\/invoice/i, allowed: ["OWNER", "MANAGER", "ATTENDANT"] },
   { pattern: /^\/api\/invoices/i, allowed: ["OWNER", "MANAGER", "ATTENDANT"] },
   { pattern: /^\/api\/payments/i, allowed: ["OWNER", "MANAGER", "ATTENDANT"] },
+  { pattern: /^\/users/i, allowed: ["OWNER", "ADMIN"] },
+  { pattern: /^\/api\/users/i, allowed: ["OWNER", "ADMIN"] },
 ];
 
 export function middleware(request: NextRequest) {
@@ -23,6 +28,9 @@ export function middleware(request: NextRequest) {
   const tenantStatus = parseTenantStatus(request.headers);
   const path = request.nextUrl.pathname;
 
+  const limited = rateLimit(request);
+  if (limited) return limited;
+
   // Force landing page to registration choice.
   if (path === "/") {
     return NextResponse.redirect(new URL("/register", request.url));
@@ -30,7 +38,7 @@ export function middleware(request: NextRequest) {
 
   // Admin routes can run without tenant context (used for provisioning) but require admin role.
   if (/^\/admin/i.test(path) || /^\/api\/admin/i.test(path)) {
-    if (role !== "ADMIN" && role !== "OWNER") {
+    if (role !== "ADMIN") {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return NextResponse.next();
@@ -49,8 +57,14 @@ export function middleware(request: NextRequest) {
 
   // Require tenant identifier in prod; allow fallback in local/dev.
   if (!tenantId) {
-    // If user is on login/register routes, allow through.
-    if (/^\/login/i.test(path) || /^\/signup/i.test(path) || /^\/register/i.test(path)) {
+    // Allow auth and status pages without a session.
+    if (
+      /^\/login/i.test(path) ||
+      /^\/signup/i.test(path) ||
+      /^\/register/i.test(path) ||
+      /^\/access\/pending/i.test(path) ||
+      /^\/access\/suspended/i.test(path)
+    ) {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/register", request.url));

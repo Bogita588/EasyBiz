@@ -3,11 +3,11 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default function SignupPage() {
-  const params =
-    typeof window === "undefined" ? "" : window.location.search;
-  const searchParams = typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(params);
-  const error = searchParams.get("error");
+type Props = { searchParams?: Record<string, string | string[] | undefined> };
+
+export default function SignupPage({ searchParams }: Props) {
+  const errorParam = searchParams?.error;
+  const error = Array.isArray(errorParam) ? errorParam[0] : errorParam;
   return (
     <div className={styles.screen}>
       <div className={styles.card}>

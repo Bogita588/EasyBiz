@@ -2,6 +2,7 @@ import styles from "./admin.module.css";
 import { prisma } from "@/lib/prisma";
 import { AdminTenantForm } from "@/components/admin-tenant-form";
 import { AdminStatusButtons } from "@/components/admin-status-buttons";
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ export default async function AdminPage() {
         status: true,
         businessType: true,
         createdAt: true,
+        userSeatsEnabled: true,
+        userSeatsRequested: true,
         users: { select: { id: true, role: true } },
         invoices: { select: { id: true } },
         purchaseOrders: { select: { id: true, paidAt: true } },
@@ -37,6 +40,8 @@ export default async function AdminPage() {
       list.map((t) => ({
         ...t,
         status: "UNKNOWN",
+        userSeatsEnabled: false,
+        userSeatsRequested: false,
       })),
     );
   }
@@ -67,6 +72,17 @@ export default async function AdminPage() {
                   {tenant.createdAt.toISOString().slice(0, 10)} • Status {tenant.status}
                 </p>
                 <p className={styles.meta}>Users: {tenant.users.length}</p>
+                <p className={styles.meta}>
+                  Extra users:{" "}
+                  {Boolean((tenant as { userSeatsEnabled?: boolean }).userSeatsEnabled)
+                    ? "Enabled"
+                    : "Disabled"}
+                  {" • "}
+                  Request:{" "}
+                  {Boolean((tenant as { userSeatsRequested?: boolean }).userSeatsRequested)
+                    ? "Requested"
+                    : "None"}
+                </p>
               </div>
               <div className={styles.stats}>
                 <div>
@@ -92,7 +108,10 @@ export default async function AdminPage() {
                         | "SUSPENDED")
                     : "UNKNOWN"
                 }
+                userSeatsEnabled={Boolean((tenant as { userSeatsEnabled?: boolean }).userSeatsEnabled)}
+                userSeatsRequested={Boolean((tenant as { userSeatsRequested?: boolean }).userSeatsRequested)}
               />
+              <AdminDeleteButton tenantId={tenant.id} />
             </article>
           );
         })}

@@ -11,10 +11,13 @@ model Tenant {
   name           String
   status         TenantStatus     @default(ACTIVE)
   businessType   String?
+  layout         LayoutPreset     @default(GENERIC)
   mpesaTill      String?
   mpesaPaybill   String?
   mpesaPochi     String?
   acceptsCash    Boolean          @default(true)
+  userSeatsEnabled  Boolean       @default(false)
+  userSeatsRequested Boolean      @default(false)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   users          User[]
@@ -252,5 +255,14 @@ enum ActivityType {
 
 enum ItemKind {
   PRODUCT
+  SERVICE
+}
+
+enum LayoutPreset {
+  GENERIC
+  DUKA
+  SALON
+  HARDWARE
+  EATERY
   SERVICE
 }

@@ -127,6 +127,7 @@ North star: If a Kenyan SME owner can use WhatsApp, they can run their business 
 - Security: HTTPS everywhere, HSTS, RBAC, rate limiting, input validation, idempotency keys for mutating endpoints, webhook signature verification for M-Pesa, per-tenant row level security or scoped queries.
 - Release: versioned container images, blue/green or canary deploy, health checks, smoke tests post-deploy, rollback plan. Nightly backups and restore drills for Postgres.
 - Performance: bundle size budgets, code-splitting, API pagination and limits, caching of static lookups, indexes on invoice/payment/customer tables.
+- Availability & persistence: run Postgres in HA (primary + streaming replica) with PITR backups; use WAL archiving and daily snapshots. Frontend Next.js instances behind a load balancer (NGINX/ALB); stateless app servers with session cookies. Add PG pooler (pgbouncer) per env; readiness/liveness probes for containers. Stripe/billing and M-Pesa webhooks behind retry-friendly idempotency keys.
 - Offline: enqueue mutations client-side with persisted queue; server endpoints must be idempotent and tolerate replay.
 
 ## Microcopy quick reference

@@ -3,20 +3,26 @@ import { prisma } from "@/lib/prisma";
 import { toDecimalOrNull } from "@/lib/sanitize";
 import { UserRole } from "@prisma/client";
 
+const allowedLayouts = ["GENERIC", "DUKA", "SALON", "HARDWARE", "EATERY", "SERVICE"];
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const businessType = body?.businessType ?? null;
+    const layoutRaw = (body?.layout as string | undefined)?.toUpperCase();
+    const layout = allowedLayouts.includes(layoutRaw ?? "") ? layoutRaw : "GENERIC";
     const businessName = body?.businessName ?? "My business";
     const payment: PaymentPayload = body?.payment ?? {};
     const firstItems = normalizeFirstItems(body?.firstItems ?? body?.firstItem);
+    const presetItems = firstItems.length ? [] : presetForLayout(layout);
 
     const tenant = await prisma.tenant.create({
       data: buildTenantCreateData({
         businessName,
         businessType,
+        layout,
         payment,
-        firstItems,
+        firstItems: firstItems.length ? firstItems : presetItems,
       }),
       select: { id: true },
     });
@@ -37,17 +43,20 @@ export async function POST(request: Request) {
 function buildTenantCreateData({
   businessName,
   businessType,
+  layout,
   payment,
   firstItems,
 }: {
   businessName: string;
   businessType: string | null;
+  layout: string;
   payment: PaymentPayload;
   firstItems: ItemInput[];
 }) {
   return {
     name: businessName,
     businessType: businessType,
+    layout,
     mpesaTill: payment?.mpesaTill ?? null,
     mpesaPaybill: payment?.mpesaPaybill ?? null,
     mpesaPochi: payment?.mpesaPochi ?? null,
@@ -113,3 +122,28 @@ type PaymentPayload = {
   mpesaPochi?: string | null;
   acceptsCash?: boolean;
 };
+
+function presetForLayout(layout: string): ItemInput[] {
+  const map: Record<string, ItemInput[]> = {
+    DUKA: [
+      { name: "Sugar (1kg)", price: "180", lowStockThreshold: 10 },
+      { name: "Cooking oil (500ml)", price: "220", lowStockThreshold: 12 },
+    ],
+    SALON: [
+      { name: "Haircut", price: "300", lowStockThreshold: 2 },
+      { name: "Braiding", price: "800", lowStockThreshold: 1 },
+    ],
+    HARDWARE: [
+      { name: "Cement bag (50kg)", price: "750", lowStockThreshold: 20 },
+      { name: "Nails (1kg)", price: "250", lowStockThreshold: 15 },
+    ],
+    EATERY: [
+      { name: "Chapati", price: "30", lowStockThreshold: 30 },
+      { name: "Stew plate", price: "200", lowStockThreshold: 10 },
+    ],
+    SERVICE: [
+      { name: "Consultation", price: "1500", lowStockThreshold: 1 },
+    ],
+  };
+  return map[layout] ?? [];
+}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createHash } from "crypto";
+import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
@@ -15,19 +15,47 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findFirst({
       where: { email },
-      select: { id: true, role: true, password: true, tenantId: true, tenant: { select: { status: true } } },
+      select: {
+        id: true,
+        role: true,
+        password: true,
+        tenantId: true,
+        tenant: { select: { status: true } },
+      },
     });
-    if (!user || !user.password) {
+    if (!user) {
       return NextResponse.redirect(new URL("/login?error=invalid", baseUrl(request)));
     }
 
-    const hash = hashPassword(password);
-    if (hash !== user.password) {
+    if (!user.password) {
+      return NextResponse.redirect(new URL("/login?error=no_password", baseUrl(request)));
+    }
+
+    let match = false;
+    if (user.password.startsWith("$2a$") || user.password.startsWith("$2b$")) {
+      match = await bcrypt.compare(password, user.password);
+    } else {
+      // legacy plaintext record: compare directly, then upgrade to bcrypt if it matches
+      match = user.password === password;
+      if (match) {
+        const upgraded = await bcrypt.hash(password, 10);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { password: upgraded },
+        });
+      }
+    }
+    if (!match) {
       return NextResponse.redirect(new URL("/login?error=invalid", baseUrl(request)));
     }
 
     const role = (user.role || "ATTENDANT").toString();
     const tenantStatus = user.tenant?.status ?? "UNKNOWN";
+    const needsOnboarding =
+      role !== "ADMIN"
+        ? (await prisma.item.count({ where: { tenantId: user.tenantId } })) === 0
+        : false;
+
     const sessionPayload = {
       userId: user.id,
       tenantId: user.tenantId,
@@ -40,7 +68,9 @@ export async function POST(request: Request) {
       role === "ADMIN"
         ? "/admin"
         : tenantStatus === "ACTIVE"
-          ? "/home"
+          ? needsOnboarding
+            ? "/onboarding"
+            : "/home"
           : "/access/pending";
 
     const res = NextResponse.redirect(new URL(target, baseUrl(request)));
@@ -53,10 +83,6 @@ export async function POST(request: Request) {
     console.error("[POST /api/auth/login]", error);
     return NextResponse.redirect(new URL("/login?error=unknown", baseUrl(request)));
   }
-}
-
-function hashPassword(pw: string) {
-  return createHash("sha256").update(pw).digest("hex");
 }
 
 function baseUrl(req: Request) {

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { TenantStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const allowedStatuses: TenantStatus[] = ["ACTIVE", "PENDING", "SUSPENDED"];
 
 export async function PATCH(
   request: Request,
@@ -9,16 +12,22 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const status = body?.status;
-    if (!["ACTIVE", "PENDING", "SUSPENDED"].includes(status)) {
+    const body = await request.json().catch(() => ({}));
+    const statusRaw = typeof body?.status === "string" ? body.status.toUpperCase() : "";
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing tenant id." }, { status: 400 });
+    }
+    if (!allowedStatuses.includes(statusRaw as TenantStatus)) {
       return NextResponse.json({ error: "Invalid status." }, { status: 400 });
     }
+
     const tenant = await prisma.tenant.update({
       where: { id },
-      data: { status },
-      select: { id: true, status: true },
+      data: { status: statusRaw as TenantStatus },
+      select: { id: true, status: true, name: true },
     });
+
     return NextResponse.json({ tenant });
   } catch (error) {
     console.error("[PATCH /api/admin/tenants/:id/status]", error);

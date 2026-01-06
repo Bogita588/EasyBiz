@@ -4,8 +4,16 @@ import { getFeed, getLowStockAlerts, getSummary } from "@/lib/data";
 import { formatCurrencyKES } from "@/lib/format";
 import Link from "next/link";
 import { RefreshAlertsButton } from "@/components/refresh-alerts";
+import { redirect } from "next/navigation";
+import { getTenantId } from "@/lib/data";
 
 export default async function Home() {
+  try {
+    await getTenantId(); // ensure session is present; middleware should guard, but double-check to avoid 500s.
+  } catch {
+    redirect("/login");
+  }
+
   const [summary, feed, alerts] = await Promise.all([
     getSummary(),
     getFeed(),
@@ -47,8 +55,8 @@ export default async function Home() {
           </p>
         </div>
         <span className={styles.badge}>Offline-ready</span>
-        <a className={styles.download} href="/api/reports/daily">
-          Download daily CSV
+        <a className={styles.download} href="/api/reports/daily/pdf">
+          Download daily PDF
         </a>
       </header>
 
@@ -63,6 +71,9 @@ export default async function Home() {
               </Link>
               <Link href="/money" className={styles.secondaryCta}>
                 {copy.home.ctaSecondary}
+              </Link>
+              <Link href="/inventory" className={styles.secondaryCta}>
+                Manage inventory
               </Link>
             </div>
           </section>

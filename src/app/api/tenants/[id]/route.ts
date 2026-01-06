@@ -21,6 +21,12 @@ export async function PATCH(
       updateData.businessType = body.businessType;
     }
 
+    if (body.layout !== undefined) {
+      const allowed = ["GENERIC", "DUKA", "SALON", "HARDWARE", "EATERY", "SERVICE"];
+      const raw = typeof body.layout === "string" ? body.layout.toUpperCase() : "";
+      updateData.layout = allowed.includes(raw) ? raw : "GENERIC";
+    }
+
     if (body.businessName !== undefined) {
       updateData.name = body.businessName || "My business";
     }
@@ -36,14 +42,17 @@ export async function PATCH(
 
     const firstItems = normalizeFirstItems(body.firstItems ?? body.firstItem);
 
+    const presetItems =
+      firstItems.length === 0 && updateData.layout ? presetForLayout(updateData.layout as string) : [];
+
     const tenant = await prisma.tenant.update({
       where: { id: tenantId },
       data: {
         ...updateData,
-        ...(firstItems.length
+        ...(firstItems.length || presetItems.length
           ? {
               items: {
-                create: firstItems,
+                create: firstItems.length ? firstItems : presetItems,
               },
             }
           : {}),
@@ -62,6 +71,29 @@ export async function PATCH(
       { status: 500 },
     );
   }
+}
+
+function presetForLayout(layout: string) {
+  const map: Record<string, { name: string; price: string; lowStockThreshold?: number }[]> = {
+    DUKA: [
+      { name: "Sugar (1kg)", price: "180", lowStockThreshold: 10 },
+      { name: "Cooking oil (500ml)", price: "220", lowStockThreshold: 12 },
+    ],
+    SALON: [
+      { name: "Haircut", price: "300", lowStockThreshold: 2 },
+      { name: "Braiding", price: "800", lowStockThreshold: 1 },
+    ],
+    HARDWARE: [
+      { name: "Cement bag (50kg)", price: "750", lowStockThreshold: 20 },
+      { name: "Nails (1kg)", price: "250", lowStockThreshold: 15 },
+    ],
+    EATERY: [
+      { name: "Chapati", price: "30", lowStockThreshold: 30 },
+      { name: "Stew plate", price: "200", lowStockThreshold: 10 },
+    ],
+    SERVICE: [{ name: "Consultation", price: "1500", lowStockThreshold: 1 }],
+  };
+  return map[layout] ?? [];
 }
 
 function normalizeFirstItems(firstItems: unknown) {

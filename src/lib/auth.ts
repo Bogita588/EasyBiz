@@ -21,10 +21,7 @@ export function parseRole(headers: Headers): UserRole {
   if (raw && allowedRoles.includes(raw as UserRole)) {
     return raw as UserRole;
   }
-  if (process.env.DEFAULT_ROLE && allowedRoles.includes(process.env.DEFAULT_ROLE as UserRole)) {
-    return process.env.DEFAULT_ROLE as UserRole;
-  }
-  return "OWNER";
+  return "ATTENDANT";
 }
 
 export function parseTenant(headers: Headers): string | null {
@@ -33,7 +30,6 @@ export function parseTenant(headers: Headers): string | null {
   if (fromSession?.length) return fromSession;
   const headerTenant = headers.get("x-tenant-id");
   if (headerTenant?.length) return headerTenant;
-  if (process.env.DEFAULT_TENANT_ID) return process.env.DEFAULT_TENANT_ID;
   return null;
 }
 

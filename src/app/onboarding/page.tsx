@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./onboarding.module.css";
 
 type PaymentType = "till" | "paybill" | "pochi" | "cash";
 
 type FormState = {
   businessType: string;
+  layout: "DUKA" | "SALON" | "HARDWARE" | "EATERY" | "SERVICE" | "GENERIC";
   businessName: string;
   items: { name: string; price: string }[];
   paymentNumber: string;
@@ -20,6 +21,12 @@ const steps = [
     title: "Let’s set up your business.",
     question: "What do you sell or do?",
     placeholder: "E.g., salon, hardware, nyama choma",
+  },
+  {
+    id: "layout",
+    title: "Pick a layout",
+    question: "Choose a template close to your business",
+    placeholder: "",
   },
   {
     id: "businessName",
@@ -55,11 +62,26 @@ export default function Onboarding() {
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<FormState>({
     businessType: "",
+    layout: "GENERIC",
     businessName: "",
     items: [{ name: "", price: "" }],
     paymentNumber: "",
     paymentType: "till",
   });
+
+  useEffect(() => {
+    if (tenantId) return;
+    const match = document.cookie.match(/ez_session=([^;]+)/);
+    if (!match) return;
+    try {
+      const json = JSON.parse(atob(match[1]));
+      if (json?.tenantId) {
+        setTenantId(json.tenantId);
+      }
+    } catch {
+      // ignore
+    }
+  }, [tenantId]);
 
   const currentStep = steps[stepIndex];
 
@@ -82,7 +104,7 @@ export default function Onboarding() {
       }
 
       if (isLastStep) {
-        router.push("/");
+        router.push("/home");
         return;
       }
 
@@ -131,6 +153,28 @@ export default function Onboarding() {
             }
             autoFocus
           />
+        )}
+
+        {currentStep.id === "layout" && (
+          <div className={styles.pillRow}>
+            {[
+              { key: "DUKA", label: "Duka" },
+              { key: "SALON", label: "Salon" },
+              { key: "HARDWARE", label: "Hardware" },
+              { key: "EATERY", label: "Eatery" },
+              { key: "SERVICE", label: "Services" },
+              { key: "GENERIC", label: "Generic" },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                className={`${styles.pill} ${form.layout === opt.key ? styles.pillActive : ""}`}
+                onClick={() => setForm((prev) => ({ ...prev, layout: opt.key as FormState["layout"] }))}
+                type="button"
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         )}
 
         {currentStep.id === "item" && (
@@ -302,6 +346,10 @@ function buildPayload(
 
   if (stepId === "businessType") {
     return { businessType: form.businessType.trim() || null };
+  }
+
+  if (stepId === "layout") {
+    return { layout: form.layout || "GENERIC" };
   }
 
   if (stepId === "businessName") {

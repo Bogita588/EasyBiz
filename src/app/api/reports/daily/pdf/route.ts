@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
 
@@ -13,10 +13,20 @@ export async function GET() {
     const end = new Date(start);
     end.setDate(start.getDate() + 1);
 
-    const [payments, invoices, pos, lowStockRaw] = await Promise.all([
+    const [tenant, payments, invoices, pos, lowStockRaw, recentActivity] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true, businessType: true },
+      }),
       prisma.payment.findMany({
         where: { tenantId, confirmedAt: { gte: start, lt: end } },
-        select: { amount: true, method: true },
+        select: {
+          amount: true,
+          method: true,
+          confirmedAt: true,
+          createdAt: true,
+          invoice: { select: { id: true, customer: { select: { name: true } } } },
+        },
       }),
       prisma.invoice.findMany({
         where: { tenantId, issuedAt: { gte: start, lt: end } },
@@ -34,6 +44,8 @@ export async function GET() {
         select: {
           id: true,
           total: true,
+          paidAmount: true,
+          paidAt: true,
           needBy: true,
           dueDate: true,
           status: true,
@@ -50,6 +62,11 @@ export async function GET() {
           lowStockThreshold: true,
           preferredSupplier: { select: { name: true } },
         },
+      }),
+      prisma.activityEvent.findMany({
+        where: { tenantId },
+        orderBy: { createdAt: "desc" },
+        take: 8,
       }),
     ]);
 
@@ -77,97 +94,168 @@ export async function GET() {
     });
 
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage();
-    const { height } = page.getSize();
-    const margin = 40;
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    let y = height - margin;
+    const fontBody = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const brand = { primary: rgb(1, 0.37, 0.32), accent: rgb(0.06, 0.65, 0.91) };
 
-    const drawLine = (text: string, size = 11, gap = 14) => {
-      if (y < margin + size) {
-        const newPage = pdfDoc.addPage();
-        y = newPage.getSize().height - margin;
-        newPage.setFont(font);
+    let page = pdfDoc.addPage();
+    let y = page.getSize().height - 50;
+    const margin = 32;
+
+    const ensureSpace = (needed: number) => {
+      if (y - needed < margin) {
+        page = pdfDoc.addPage();
+        y = page.getSize().height - 50;
       }
-      page.drawText(text, { x: margin, y, size, font });
-      y -= gap;
     };
 
-    drawLine("Daily Business Report", 18, 20);
-    drawLine(`Date: ${start.toISOString().slice(0, 10)}`, 12, 18);
-    drawLine("Summary", 14, 16);
-    drawLine(`Payments collected: KES ${paymentTotal.toLocaleString()}`);
-    Object.entries(paymentByMethod).forEach(([method, amt]) =>
-      drawLine(`  • ${method}: KES ${amt.toLocaleString()}`),
-    );
-    drawLine(
-      `Receivables (owed to you): KES ${Number(
-        receivables._sum.total || 0,
-      ).toLocaleString()}`,
-    );
-    drawLine(
-      `Payables (owed to suppliers): KES ${Number(
-        payablesAgg._sum.total || 0,
-      ).toLocaleString()}`,
-    );
-    drawLine(`Purchase orders placed: ${pos.length}`);
-    drawLine(`Low-stock items: ${lowStock.length}`);
-    y -= 6;
+    const drawCard = (title: string, lines: string[]) => {
+      const cardHeight = lines.length * 16 + 40;
+      ensureSpace(cardHeight + 20);
+      page.drawRectangle({
+        x: margin,
+        y: y - cardHeight,
+        width: page.getSize().width - margin * 2,
+        height: cardHeight,
+        color: rgb(1, 1, 1),
+        borderColor: rgb(0.9, 0.93, 0.97),
+        borderWidth: 1,
+        opacity: 0.98,
+        borderOpacity: 0.8,
+      });
+      page.drawRectangle({
+        x: margin,
+        y: y - 26,
+        width: 6,
+        height: 18,
+        color: brand.primary,
+      });
+      page.drawText(title, {
+        x: margin + 12,
+        y: y - 16,
+        size: 12,
+        font: fontBold,
+        color: rgb(0.1, 0.12, 0.18),
+      });
+      let innerY = y - 36;
+      lines.forEach((line) => {
+        page.drawText(line, {
+          x: margin + 12,
+          y: innerY,
+          size: 10.5,
+          font: fontBody,
+          color: rgb(0.18, 0.22, 0.3),
+        });
+        innerY -= 14;
+      });
+      y = y - cardHeight - 12;
+    };
 
-    drawLine("Invoices", 14, 16);
-    if (!invoices.length) {
-      drawLine("No invoices issued today.");
-    } else {
-      invoices.forEach((inv) => {
-        const line = inv.lines[0];
-        const lineText = line
-          ? `${line.quantity} × ${line.description}`
-          : "No line items";
-        drawLine(
-          `${inv.customer?.name || "Customer"} • ${lineText} • ${inv.status} • KES ${Number(
+    const headerTitle = tenant?.name || "Daily Business Report";
+    page.drawRectangle({
+      x: 0,
+      y: page.getSize().height - 90,
+      width: page.getSize().width,
+      height: 90,
+      color: rgb(0.99, 0.96, 0.93),
+      opacity: 0.9,
+    });
+    page.drawText(headerTitle, {
+      x: margin,
+      y: page.getSize().height - 38,
+      size: 20,
+      font: fontBold,
+      color: brand.primary,
+    });
+    page.drawText(
+      `${tenant?.businessType || "Business"} • ${start.toISOString().slice(0, 10)}`,
+      {
+        x: margin,
+        y: page.getSize().height - 58,
+        size: 11,
+        font: fontBody,
+        color: rgb(0.25, 0.28, 0.36),
+      },
+    );
+    y = page.getSize().height - 110;
+
+    const summaryLines = [
+      `Payments collected: KES ${paymentTotal.toLocaleString()}`,
+      ...Object.entries(paymentByMethod).map(
+        ([method, amt]) => `${method}: KES ${amt.toLocaleString()}`,
+      ),
+      `Receivables (owed to you): KES ${Number(receivables._sum.total || 0).toLocaleString()}`,
+      `Payables (owed to suppliers): KES ${Number(payablesAgg._sum.total || 0).toLocaleString()}`,
+      `Purchase orders placed today: ${pos.length}`,
+      `Low-stock items watching: ${lowStock.length}`,
+    ];
+    drawCard("Snapshot", summaryLines);
+
+    const invoiceLines = invoices.length
+      ? invoices.map((inv) => {
+          const line = inv.lines[0];
+          const lineText = line ? `${line.quantity} × ${line.description}` : "No line items";
+          return `${inv.customer?.name || "Customer"} • ${lineText} • ${inv.status} • KES ${Number(
             inv.total || 0,
-          ).toLocaleString()}`,
-        );
-      });
-    }
-    y -= 6;
+          ).toLocaleString()}`;
+        })
+      : ["No invoices issued today."];
+    drawCard("Invoices today", invoiceLines);
 
-    drawLine("Supplier orders", 14, 16);
-    if (!pos.length) {
-      drawLine("No purchase orders placed today.");
-    } else {
-      pos.forEach((po) => {
-        const line = po.lines[0];
-        const lineText = line?.item?.name
-          ? `${line.quantity} × ${line.item.name}`
-          : "Order";
-        const timing = [
-          po.needBy ? `need by ${po.needBy.toISOString().slice(0, 10)}` : null,
-          po.dueDate ? `due ${po.dueDate.toISOString().slice(0, 10)}` : null,
-        ]
-          .filter(Boolean)
-          .join(", ");
-        drawLine(
-          `${po.supplier?.name || "Supplier"} • ${lineText} • ${po.status}${
+    const poLines = pos.length
+      ? pos.map((po) => {
+          const line = po.lines[0];
+          const lineText = line?.item?.name ? `${line.quantity} × ${line.item.name}` : "Order";
+          const paid = Number(po.paidAmount || 0);
+          const balance = Math.max(0, Number(po.total || 0) - paid);
+          const timing = [
+            po.needBy ? `need by ${po.needBy.toISOString().slice(0, 10)}` : null,
+            po.dueDate ? `due ${po.dueDate.toISOString().slice(0, 10)}` : null,
+          ]
+            .filter(Boolean)
+            .join(" • ");
+          let deliveryNote = "Pending delivery";
+          if (po.paidAt && (po.needBy || po.dueDate)) {
+            const target = po.needBy || po.dueDate;
+            deliveryNote = po.paidAt <= target ? "Delivered early/on time" : "Delivered late";
+          } else if (po.paidAt) {
+            deliveryNote = "Received";
+          }
+          return `${po.supplier?.name || "Supplier"} • ${lineText} • ${po.status}${
             timing ? ` • ${timing}` : ""
-          } • KES ${Number(po.total || 0).toLocaleString()}`,
-        );
-      });
-    }
-    y -= 6;
+          } • ${deliveryNote} • KES ${Number(po.total || 0).toLocaleString()} • Paid KES ${paid.toLocaleString()} • Balance KES ${balance.toLocaleString()}`;
+        })
+      : ["No purchase orders placed today."];
+    drawCard("Supplier orders & payables", poLines);
 
-    drawLine("Low-stock alerts", 14, 16);
-    if (!lowStock.length) {
-      drawLine("No low-stock items today.");
-    } else {
-      lowStock.forEach((item) => {
-        drawLine(
-          `${item.name}: ${item.stockQuantity}/${item.lowStockThreshold}${
-            item.preferredSupplier ? ` • Supplier: ${item.preferredSupplier.name}` : ""
-          }`,
-        );
-      });
-    }
+    const lowStockLines = lowStock.length
+      ? lowStock.map(
+          (item) =>
+            `${item.name}: ${item.stockQuantity}/${item.lowStockThreshold}${
+              item.preferredSupplier ? ` • Supplier: ${item.preferredSupplier.name}` : ""
+            }`,
+        )
+      : ["No low-stock items today."];
+    drawCard("Low-stock alerts", lowStockLines);
+
+    const paymentLines = payments.length
+      ? payments.map((p) => {
+          const ts = p.confirmedAt || p.createdAt;
+          const time = ts ? ts.toISOString().slice(11, 16) : "—";
+          return `${time} • ${p.method} • KES ${Number(p.amount || 0).toLocaleString()} • ${
+            p.invoice?.customer?.name || "Payment"
+          }`;
+        })
+      : ["No payments recorded today."];
+    drawCard("Money trail", paymentLines);
+
+    const activityLines = recentActivity.length
+      ? recentActivity.map((a) => {
+          const time = a.createdAt.toISOString().slice(11, 19);
+          return `${time} • ${a.type}: ${a.message}`;
+        })
+      : ["No recent activity."];
+    drawCard("System access & activity", activityLines);
 
     const pdfBytes = await pdfDoc.save();
     return new NextResponse(Buffer.from(pdfBytes), {

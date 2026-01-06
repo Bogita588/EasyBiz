@@ -145,7 +145,7 @@
 .danger {
   background: #fee2e2;
   color: #b91c1c;
-  border: none;
+  border: 1px solid #fecdd3;
   padding: 10px 14px;
   border-radius: 12px;
   font-weight: 700;
