@@ -50,6 +50,11 @@ export default async function CustomerProfile({
           <p className={styles.meta}>
             {customer.phone || "No phone"} • {customer.priceTier}
           </p>
+          <p className={styles.meta}>
+            {customer.email || "No email"} • {customer.whatsapp || "No WhatsApp"}
+          </p>
+          {customer.location && <p className={styles.meta}>{customer.location}</p>}
+          {customer.notes && <p className={styles.meta}>{customer.notes}</p>}
         </div>
         <Link href="/invoice/new" className={styles.primary}>
           New invoice
@@ -64,6 +69,10 @@ export default async function CustomerProfile({
             id: customer.id,
             name: customer.name,
             phone: customer.phone,
+            email: customer.email,
+            whatsapp: customer.whatsapp,
+            location: customer.location,
+            notes: customer.notes,
             priceTier: customer.priceTier as "RETAIL" | "WHOLESALE",
           }}
         />

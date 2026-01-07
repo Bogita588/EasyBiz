@@ -55,8 +55,10 @@ export default async function CustomersPage() {
             <div>
               <p className={styles.name}>{customer.name}</p>
               <p className={styles.meta}>
-                Paid {customer.paid} • Waiting {customer.waiting}
+                {customer.phone || customer.email || customer.whatsapp || "No contact"} • {customer.priceTier}
               </p>
+              {customer.location && <p className={styles.meta}>{customer.location}</p>}
+              {customer.notes && <p className={styles.meta}>{customer.notes}</p>}
             </div>
             <div className={styles.amountBlock}>
               <p className={styles.amount}>{formatCurrencyKES(customer.owed)}</p>

@@ -10,7 +10,16 @@ export async function GET() {
     const customers = await prisma.customer.findMany({
       where: { tenantId },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, phone: true, priceTier: true },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        whatsapp: true,
+        location: true,
+        notes: true,
+        priceTier: true,
+      },
     });
     return NextResponse.json({ customers });
   } catch (error) {
@@ -28,6 +37,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const phone = typeof body?.phone === "string" ? body.phone.trim() : null;
+    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : null;
+    const whatsapp = typeof body?.whatsapp === "string" ? body.whatsapp.trim() : null;
+    const location = typeof body?.location === "string" ? body.location.trim() : null;
+    const notes = typeof body?.notes === "string" ? body.notes.trim() : null;
     const priceTier =
       body?.priceTier === "WHOLESALE" || body?.priceTier === "RETAIL"
         ? body.priceTier
@@ -40,9 +53,22 @@ export async function POST(request: Request) {
         tenantId,
         name,
         phone,
+        email,
+        whatsapp,
+        location,
+        notes,
         priceTier,
       },
-      select: { id: true, name: true, phone: true, priceTier: true },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        whatsapp: true,
+        location: true,
+        notes: true,
+        priceTier: true,
+      },
     });
     return NextResponse.json({ customer });
   } catch (error) {

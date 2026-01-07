@@ -7,11 +7,10 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } },
+  { params }: { params: { id: string } },
 ) {
   try {
-    const resolved = params && "then" in (params as any) ? await (params as Promise<{ id: string }>) : (params as { id: string });
-    const id = resolved?.id;
+    const id = params?.id;
     if (!id) {
       return NextResponse.json({ error: "Missing user id." }, { status: 400 });
     }
@@ -80,11 +79,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } },
+  { params }: { params: { id: string } },
 ) {
   try {
-    const resolved = params && "then" in (params as any) ? await (params as Promise<{ id: string }>) : (params as { id: string });
-    const id = resolved?.id;
+    const id = params?.id;
     if (!id) {
       return NextResponse.json({ error: "Missing user id." }, { status: 400 });
     }

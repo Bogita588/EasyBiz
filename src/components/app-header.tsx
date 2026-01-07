@@ -17,27 +17,38 @@ const links: Array<{ href: string; label: string; roles?: Role[] }> = [
   { href: "/api/auth/logout", label: "Logout" },
 ];
 
-export function AppHeader() {
+type Props = {
+  initialRole?: Role;
+};
+
+export function AppHeader({ initialRole }: Props) {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<Role>("ATTENDANT");
+  const [role, setRole] = useState<Role>(initialRole || "ATTENDANT");
 
   useEffect(() => {
-    const cookie = document.cookie
-      .split(";")
-      .map((c) => c.trim())
-      .find((c) => c.startsWith("ez_session="));
-    if (!cookie) return;
-    const val = cookie.split("=")[1];
-    try {
-      const parsed = JSON.parse(atob(val));
-      const raw = (parsed?.role || "").toUpperCase();
-      if (raw === "ADMIN" || raw === "OWNER" || raw === "MANAGER" || raw === "ATTENDANT") {
-        setRole(raw);
-      }
-    } catch {
-      // ignore
+    if (initialRole) return;
+    if (role === "OWNER" || role === "ADMIN") return;
+    const roleAttr =
+      typeof document !== "undefined" ? document.body.dataset?.role : undefined;
+    if (
+      roleAttr === "ADMIN" ||
+      roleAttr === "OWNER" ||
+      roleAttr === "MANAGER" ||
+      roleAttr === "ATTENDANT"
+    ) {
+      setRole(roleAttr);
+      return;
     }
-  }, []);
+    fetch("/api/me")
+      .then((res) => res.json())
+      .then((data) => {
+        const r = (data?.role || "").toUpperCase();
+        if (r === "ADMIN" || r === "OWNER" || r === "MANAGER" || r === "ATTENDANT") {
+          setRole(r);
+        }
+      })
+      .catch(() => {});
+  }, [initialRole, role]);
 
   const toggle = () => setOpen((v) => !v);
   const close = () => setOpen(false);

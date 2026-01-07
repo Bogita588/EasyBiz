@@ -8,9 +8,9 @@ export async function logAudit(params: {
 }) {
   try {
     // If model is unavailable (e.g., during build/dev), skip.
-    // @ts-ignore
+    // @ts-expect-error auditLog may be undefined in older schemas
     if (!prisma || !prisma.auditLog) return;
-    // @ts-ignore
+    // @ts-expect-error auditLog may be undefined in older schemas
     await prisma.auditLog.create({
       data: {
         tenantId: params.tenantId || null,

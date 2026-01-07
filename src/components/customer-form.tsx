@@ -5,7 +5,16 @@ import { useEffect, useState } from "react";
 import styles from "@/app/customers/customers.module.css";
 
 type Props = {
-  initial?: { id: string; name: string; phone: string | null; priceTier: "RETAIL" | "WHOLESALE" };
+  initial?: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email?: string | null;
+    whatsapp?: string | null;
+    location?: string | null;
+    notes?: string | null;
+    priceTier: "RETAIL" | "WHOLESALE";
+  };
   mode?: "create" | "edit";
   customerId?: string;
 };
@@ -14,6 +23,10 @@ export function CustomerForm({ initial, mode = "create", customerId }: Props) {
   const router = useRouter();
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
+  const [email, setEmail] = useState(initial?.email ?? "");
+  const [whatsapp, setWhatsapp] = useState(initial?.whatsapp ?? "");
+  const [location, setLocation] = useState(initial?.location ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
   const [priceTier, setPriceTier] = useState<"RETAIL" | "WHOLESALE">(initial?.priceTier ?? "RETAIL");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -28,7 +41,15 @@ export function CustomerForm({ initial, mode = "create", customerId }: Props) {
     setBusy(true);
     setMessage(null);
     try {
-      const payload = { name, phone: phone || null, priceTier };
+      const payload = {
+        name,
+        phone: phone || null,
+        email: email || null,
+        whatsapp: whatsapp || null,
+        location: location || null,
+        notes: notes || null,
+        priceTier,
+      };
       const url =
         mode === "edit" && customerId ? `/api/customers/${customerId}` : "/api/customers";
       const method = mode === "edit" ? "PATCH" : "POST";
@@ -45,6 +66,10 @@ export function CustomerForm({ initial, mode = "create", customerId }: Props) {
       if (mode === "create") {
         setName("");
         setPhone("");
+        setEmail("");
+        setWhatsapp("");
+        setLocation("");
+        setNotes("");
         setPriceTier("RETAIL");
       }
       router.refresh();
@@ -87,6 +112,30 @@ export function CustomerForm({ initial, mode = "create", customerId }: Props) {
           placeholder="Phone (optional)"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+        />
+        <input
+          className={styles.input}
+          placeholder="Email (optional)"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          className={styles.input}
+          placeholder="WhatsApp (optional)"
+          value={whatsapp}
+          onChange={(e) => setWhatsapp(e.target.value)}
+        />
+        <input
+          className={styles.input}
+          placeholder="Location/Area (optional)"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+        <textarea
+          className={styles.textarea}
+          placeholder="Notes / what you sell them (optional)"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
         />
         <select
           className={styles.input}

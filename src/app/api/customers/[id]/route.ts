@@ -19,6 +19,30 @@ export async function PATCH(
         : typeof body?.phone === "string"
           ? body.phone.trim()
           : undefined;
+    const email =
+      body?.email === null
+        ? null
+        : typeof body?.email === "string"
+          ? body.email.trim().toLowerCase()
+          : undefined;
+    const whatsapp =
+      body?.whatsapp === null
+        ? null
+        : typeof body?.whatsapp === "string"
+          ? body.whatsapp.trim()
+          : undefined;
+    const location =
+      body?.location === null
+        ? null
+        : typeof body?.location === "string"
+          ? body.location.trim()
+          : undefined;
+    const notes =
+      body?.notes === null
+        ? null
+        : typeof body?.notes === "string"
+          ? body.notes.trim()
+          : undefined;
     const priceTier =
       body?.priceTier === "WHOLESALE" || body?.priceTier === "RETAIL"
         ? body.priceTier
@@ -26,8 +50,17 @@ export async function PATCH(
 
     const customer = await prisma.customer.update({
       where: { id, tenantId },
-      data: { name, phone, priceTier },
-      select: { id: true, name: true, phone: true, priceTier: true },
+      data: { name, phone, email, whatsapp, location, notes, priceTier },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        whatsapp: true,
+        location: true,
+        notes: true,
+        priceTier: true,
+      },
     });
     return NextResponse.json({ customer });
   } catch (error) {
