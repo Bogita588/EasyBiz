@@ -3,10 +3,11 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-type Props = { searchParams?: Record<string, string | string[] | undefined> };
+type Props = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
-export default function SignupPage({ searchParams }: Props) {
-  const errorParam = searchParams?.error;
+export default async function SignupPage({ searchParams }: Props) {
+  const resolved = searchParams ? await searchParams : undefined;
+  const errorParam = resolved?.error;
   const error = Array.isArray(errorParam) ? errorParam[0] : errorParam;
   return (
     <div className={styles.screen}>

@@ -2,10 +2,24 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
+import { checkIdempotency, storeIdempotency } from "@/lib/idempotency";
 
 export async function POST(request: Request) {
   try {
     const tenantId = await getTenantId();
+    const idempotencyKey =
+      typeof request.headers.get("idempotency-key") === "string"
+        ? request.headers.get("idempotency-key")
+        : null;
+    const idempoHit = await checkIdempotency({
+      tenantId,
+      scope: "po:create",
+      key: idempotencyKey,
+    });
+    if (idempoHit) {
+      return NextResponse.json(idempoHit.response, { status: idempoHit.status });
+    }
+
     const body = await request.json();
     const itemId = body?.itemId as string | undefined;
     const quantity = Number(body?.quantity) || 0;
@@ -90,7 +104,15 @@ export async function POST(request: Request) {
       needBy ? `, expected ${needBy.toISOString().slice(0, 10)}` : ""
     }${dueDate ? `, due ${dueDate.toISOString().slice(0, 10)}` : ""}. Total KES ${totalNumber.toLocaleString()}.`;
 
-    return NextResponse.json({ purchaseOrderId: po.id, message });
+    const responseBody = { purchaseOrderId: po.id, message };
+    await storeIdempotency({
+      tenantId,
+      scope: "po:create",
+      key: idempotencyKey,
+      status: 200,
+      response: responseBody,
+    });
+    return NextResponse.json(responseBody);
   } catch (error) {
     console.error("[POST /api/purchase-orders]", error);
     return NextResponse.json(

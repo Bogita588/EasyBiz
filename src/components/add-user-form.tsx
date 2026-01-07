@@ -78,18 +78,21 @@ export function AddUserForm() {
           className={styles.input}
           type="password"
           placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button
-          className={styles.primary}
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+    />
+    <button
+      className={styles.primary}
           type="button"
           onClick={submit}
           disabled={busy || !email || !password || !name}
         >
-          Invite user
-        </button>
-      </div>
+        Invite user
+      </button>
+    </div>
+      <p className={styles.meta}>
+        Passwords cannot be viewed later; choose one you can share with the teammate.
+      </p>
       {message && <p className={styles.meta}>{message}</p>}
     </div>
   );

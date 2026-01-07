@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
 import { toDecimalOrNull } from "@/lib/sanitize";
+import { checkIdempotency, storeIdempotency } from "@/lib/idempotency";
 
 export async function GET() {
   try {
@@ -28,6 +29,19 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const tenantId = await getTenantId();
+    const idempotencyKey =
+      typeof request.headers.get("idempotency-key") === "string"
+        ? request.headers.get("idempotency-key")
+        : null;
+    const idempoHit = await checkIdempotency({
+      tenantId,
+      scope: "invoice:create",
+      key: idempotencyKey,
+    });
+    if (idempoHit) {
+      return NextResponse.json(idempoHit.response, { status: idempoHit.status });
+    }
+
     const body = await request.json();
     const customerId = body?.customerId ?? null;
     const items = Array.isArray(body?.items) ? body.items : [];
@@ -120,10 +134,18 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    return NextResponse.json({
+    const responseBody = {
       invoiceId: invoice.id,
       message: "Invoice sent. Waiting for payment.",
+    };
+    await storeIdempotency({
+      tenantId,
+      scope: "invoice:create",
+      key: idempotencyKey,
+      status: 200,
+      response: responseBody,
     });
+    return NextResponse.json(responseBody);
   } catch (error) {
     console.error("[POST /api/invoices]", error);
     return NextResponse.json(

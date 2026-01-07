@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { logAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.redirect(new URL("/login?error=missing", baseUrl(request)));
     }
 
-    const user = await prisma.user.findFirst({
+    const candidates = await prisma.user.findMany({
       where: { email },
       select: {
         id: true,
@@ -23,29 +24,30 @@ export async function POST(request: Request) {
         tenant: { select: { status: true } },
       },
     });
-    if (!user) {
+    if (candidates.length === 0) {
       return NextResponse.redirect(new URL("/login?error=invalid", baseUrl(request)));
     }
 
-    if (!user.password) {
-      return NextResponse.redirect(new URL("/login?error=no_password", baseUrl(request)));
-    }
-
-    let match = false;
-    if (user.password.startsWith("$2a$") || user.password.startsWith("$2b$")) {
-      match = await bcrypt.compare(password, user.password);
-    } else {
-      // legacy plaintext record: compare directly, then upgrade to bcrypt if it matches
-      match = user.password === password;
-      if (match) {
+    let user = null as (typeof candidates[number]) | null;
+    for (const c of candidates) {
+      if (!c.password) continue;
+      if (c.password.startsWith("$2a$") || c.password.startsWith("$2b$")) {
+        if (await bcrypt.compare(password, c.password)) {
+          user = c;
+          break;
+        }
+      } else if (c.password === password) {
         const upgraded = await bcrypt.hash(password, 10);
         await prisma.user.update({
-          where: { id: user.id },
+          where: { id: c.id },
           data: { password: upgraded },
         });
+        user = { ...c, password: upgraded };
+        break;
       }
     }
-    if (!match) {
+
+    if (!user) {
       return NextResponse.redirect(new URL("/login?error=invalid", baseUrl(request)));
     }
 
@@ -68,16 +70,20 @@ export async function POST(request: Request) {
       role === "ADMIN"
         ? "/admin"
         : tenantStatus === "ACTIVE"
-          ? needsOnboarding
-            ? "/onboarding"
-            : "/home"
+          ? "/home"
           : "/access/pending";
 
     const res = NextResponse.redirect(new URL(target, baseUrl(request)));
     res.headers.append(
       "Set-Cookie",
-      `ez_session=${cookie}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`,
+      `ez_session=${cookie}; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800`,
     );
+    await logAudit({
+      tenantId: user.tenantId,
+      userId: user.id,
+      action: "login_success",
+      meta: { role, tenantStatus, needsOnboarding },
+    });
     return res;
   } catch (error) {
     console.error("[POST /api/auth/login]", error);

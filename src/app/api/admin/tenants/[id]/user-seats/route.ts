@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,11 @@ export async function PATCH(
         where: { id },
         data: { userSeatsEnabled: enable, userSeatsRequested: false },
         select: { id: true, name: true, userSeatsEnabled: true, userSeatsRequested: true },
+      });
+      await logAudit({
+        tenantId: id,
+        action: "user_seats_toggle",
+        meta: { enabled: enable },
       });
       return NextResponse.json({ tenant });
     } catch (err) {

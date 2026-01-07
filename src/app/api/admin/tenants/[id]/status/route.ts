@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TenantStatus } from "@prisma/client";
+import { logAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,12 @@ export async function PATCH(
       where: { id },
       data: { status: statusRaw as TenantStatus },
       select: { id: true, status: true, name: true },
+    });
+
+    await logAudit({
+      tenantId: id,
+      action: "tenant_status_update",
+      meta: { status: tenant.status },
     });
 
     return NextResponse.json({ tenant });

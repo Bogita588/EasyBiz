@@ -3,10 +3,28 @@ import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
 import { AddUserForm } from "@/components/add-user-form";
 import { UserSeatRequester } from "@/components/user-seat-requester";
+import { UserListClient } from "@/components/user-list-client";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get("ez_session")?.value;
+  let role = "ATTENDANT";
+  if (raw) {
+    try {
+      const parsed = JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
+      role = (parsed?.role || "").toUpperCase();
+    } catch {
+      role = "ATTENDANT";
+    }
+  }
+  if (role !== "OWNER") {
+    return redirect("/home");
+  }
+
   const tenantId = await getTenantId();
   const users = await prisma.user.findMany({
     where: { tenantId },
@@ -64,19 +82,12 @@ export default async function UsersPage() {
       )}
 
       <div className={styles.list}>
-        {users.map((user) => (
-          <div key={user.id} className={styles.row}>
-            <div>
-              <p className={styles.name}>{user.name || "User"}</p>
-              <p className={styles.meta}>{user.email}</p>
-            </div>
-            <div className={styles.roleBlock}>
-              <span className={styles.pill}>{user.role}</span>
-              <p className={styles.meta}>Joined {user.createdAt.toISOString().slice(0, 10)}</p>
-            </div>
-          </div>
-        ))}
-        {users.length === 0 && <p className={styles.meta}>No users yet.</p>}
+        <UserListClient
+          users={users.map((u) => ({
+            ...u,
+            createdAt: u.createdAt.toISOString(),
+          }))}
+        />
       </div>
     </div>
   );

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { parseRole, parseTenant, parseTenantStatus, isAllowed, type UserRole } from "./src/lib/auth";
 import { rateLimit } from "./src/middleware/rate-limit";
+import { runWithTenant } from "./src/lib/tenant-context";
+import { redisRateLimit } from "./src/middleware/redis-rate-limit";
 
 const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
   { pattern: /^\/admin/i, allowed: ["ADMIN"] },
@@ -18,18 +20,20 @@ const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
   { pattern: /^\/invoice/i, allowed: ["OWNER", "MANAGER", "ATTENDANT"] },
   { pattern: /^\/api\/invoices/i, allowed: ["OWNER", "MANAGER", "ATTENDANT"] },
   { pattern: /^\/api\/payments/i, allowed: ["OWNER", "MANAGER", "ATTENDANT"] },
-  { pattern: /^\/users/i, allowed: ["OWNER", "ADMIN"] },
-  { pattern: /^\/api\/users/i, allowed: ["OWNER", "ADMIN"] },
+  { pattern: /^\/users/i, allowed: ["OWNER"] },
+  { pattern: /^\/api\/users/i, allowed: ["OWNER"] },
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const role = parseRole(request.headers);
   const tenantId = parseTenant(request.headers);
   const tenantStatus = parseTenantStatus(request.headers);
   const path = request.nextUrl.pathname;
 
-  const limited = rateLimit(request);
+  const limited = await redisRateLimit(request);
   if (limited) return limited;
+  const limitedMemory = rateLimit(request);
+  if (limitedMemory) return limitedMemory;
 
   // Force landing page to registration choice.
   if (path === "/") {
@@ -87,10 +91,12 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  const response = NextResponse.next();
-  response.headers.set("x-tenant-id", tenantId);
-  response.headers.set("x-role", role);
-  return response;
+  return runWithTenant(tenantId, () => {
+    const response = NextResponse.next();
+    response.headers.set("x-tenant-id", tenantId);
+    response.headers.set("x-role", role);
+    return response;
+  });
 }
 
 export const config = {

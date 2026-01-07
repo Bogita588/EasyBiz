@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export async function DELETE(
     await prisma.supplier.deleteMany({ where: { tenantId: id } });
     await prisma.user.deleteMany({ where: { tenantId: id } });
     await prisma.tenant.deleteMany({ where: { id } });
+
+    await logAudit({ tenantId: id, action: "tenant_deleted" });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -44,63 +44,6 @@ a {
     linear-gradient(180deg, #fdf4ec 0%, #f1f7ff 100%);
 }
 
-.top-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  max-width: 1180px;
-  margin: 0 auto;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.85);
-  border-bottom: 1px solid rgba(231, 237, 245, 0.8);
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 800;
-  color: var(--color-text);
-  letter-spacing: 0.4px;
-}
-
-.nav-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #ff7d5c, #ffb347);
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-}
-
-.nav-links {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  font-weight: 600;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.nav-links a {
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  transition: all 0.18s ease;
-}
-
-.nav-links a:hover {
-  border-color: rgba(14, 165, 233, 0.35);
-  background: rgba(14, 165, 233, 0.08);
-}
-
 .app-content {
   max-width: 1180px;
   margin: 0 auto;

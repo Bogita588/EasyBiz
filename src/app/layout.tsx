@@ -7,6 +7,7 @@ import { ServiceWorkerClient } from "@/components/service-worker-client";
 import { PerformanceGuard } from "@/components/performance-guard";
 import { TenantStatusGuard } from "@/components/tenant-status-guard";
 import SecurityFooter from "@/components/security-footer";
+import { AppHeader } from "@/components/app-header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,22 +44,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <div className="app-shell">
-          <header className="top-nav">
-            <div className="nav-brand">
-              <span className="nav-logo">EZ</span>
-              <span className="nav-name">EasyBiz</span>
-            </div>
-            <nav className="nav-links">
-              <Link href="/home">Home</Link>
-              <Link href="/invoice/new">Sell</Link>
-              <Link href="/invoices">Invoices</Link>
-              <Link href="/customers">Customers</Link>
-              <Link href="/suppliers">Suppliers</Link>
-              <Link href="/inventory">Inventory</Link>
-              <Link href="/users">Users</Link>
-              <Link href="/api/auth/logout">Logout</Link>
-            </nav>
-          </header>
+          <AppHeader />
           <div className="app-content">
             {children}
             <SecurityFooter />
