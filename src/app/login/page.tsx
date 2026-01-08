@@ -1,9 +1,11 @@
+"use client";
+
 import styles from "./login.module.css";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export const dynamic = "force-dynamic";
-
-type Props = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
 function messageFor(error?: string | null) {
   if (!error) return null;
@@ -14,11 +16,11 @@ function messageFor(error?: string | null) {
   return "Could not sign you in. Try again.";
 }
 
-export default async function LoginPage({ searchParams }: Props) {
-  const resolved = searchParams ? await searchParams : undefined;
-  const errorParam = resolved?.error;
-  const error = Array.isArray(errorParam) ? errorParam[0] : errorParam;
+export default function LoginPage() {
+  const params = useSearchParams();
+  const error = params?.get("error");
   const msg = messageFor(error);
+  const [showPw, setShowPw] = useState(false);
 
   return (
     <div className={styles.screen}>
@@ -35,17 +37,30 @@ export default async function LoginPage({ searchParams }: Props) {
             placeholder="Email"
             required
           />
-          <input
-            className={styles.input}
-            name="password"
-            type="password"
-            placeholder="Password"
-            required
-          />
+          <div className={styles.passwordRow}>
+            <input
+              className={styles.input}
+              name="password"
+              type={showPw ? "text" : "password"}
+              placeholder="Password"
+              required
+            />
+            <button
+              type="button"
+              className={styles.toggle}
+              onClick={() => setShowPw((v) => !v)}
+              aria-label={showPw ? "Hide password" : "Show password"}
+            >
+              {showPw ? "Hide" : "Show"}
+            </button>
+          </div>
           <button className={styles.primary} type="submit">
             Sign in
           </button>
         </form>
+        <p className={styles.meta}>
+          <Link href="/reset">Forgot password?</Link>
+        </p>
         <p className={styles.meta}>
           No account? <Link href="/signup">Request access</Link>
         </p>

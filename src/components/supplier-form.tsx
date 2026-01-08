@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import styles from "./supplier-form.module.css";
+import { getCsrfToken } from "@/lib/csrf";
 
 export function SupplierForm() {
   const [name, setName] = useState("");
@@ -15,9 +16,13 @@ export function SupplierForm() {
     setBusy(true);
     setStatus(null);
     try {
+      const csrf = getCsrfToken();
       const res = await fetch("/api/suppliers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "x-csrf-token": csrf } : {}),
+        },
         body: JSON.stringify({ name, phone, email, whatsapp }),
       });
       if (!res.ok) {

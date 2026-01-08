@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { checkIdempotency, storeIdempotency } from "@/lib/idempotency";
 
 export async function POST(request: Request) {
   try {
@@ -17,9 +18,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const idempotencyKey =
+      request.headers.get("idempotency-key") || `mpesa-webhook-${paymentId}-${mpesaReceipt || amountRaw}`;
+    const hit = await checkIdempotency({
+      tenantId,
+      scope: "mpesa:webhook",
+      key: idempotencyKey,
+    });
+    if (hit) {
+      return NextResponse.json(hit.response, { status: hit.status });
+    }
+
     await prisma.$transaction([
       prisma.payment.update({
-        where: { id: paymentId },
+        where: { id: paymentId, tenantId },
         data: {
           status: "CONFIRMED",
           mpesaReceipt: mpesaReceipt ?? null,
@@ -27,7 +39,7 @@ export async function POST(request: Request) {
         },
       }),
       prisma.invoice.update({
-        where: { id: invoiceId },
+        where: { id: invoiceId, tenantId },
         data: { status: "PAID" },
       }),
       prisma.activityEvent.create({
@@ -41,7 +53,16 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    return NextResponse.json({ message: "Payment recorded." });
+    const responsePayload = { message: "Payment recorded." };
+    await storeIdempotency({
+      tenantId,
+      scope: "mpesa:webhook",
+      key: idempotencyKey,
+      status: 200,
+      response: responsePayload,
+    });
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("[POST /api/payments/mpesa/webhook]", error);
     return NextResponse.json(

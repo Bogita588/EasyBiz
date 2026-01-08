@@ -14,7 +14,15 @@ const WINDOW_SECONDS = 15;
 const MAX_REQUESTS = 50;
 
 export async function redisRateLimit(request: NextRequest) {
-  if (!redis) return null;
+  if (!redis) {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "Rate limiting unavailable. Contact admin." },
+        { status: 503 },
+      );
+    }
+    return null;
+  }
   const tenant = parseTenant(request.headers) || "anon";
   const role = parseRole(request.headers);
   const ip = request.headers.get("x-forwarded-for") || "ip";

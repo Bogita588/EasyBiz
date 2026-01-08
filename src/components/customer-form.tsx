@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "@/app/customers/customers.module.css";
+import { getCsrfToken } from "@/lib/csrf";
 
 type Props = {
   initial?: {
@@ -41,6 +42,7 @@ export function CustomerForm({ initial, mode = "create", customerId }: Props) {
     setBusy(true);
     setMessage(null);
     try {
+      const csrf = getCsrfToken();
       const payload = {
         name,
         phone: phone || null,
@@ -55,7 +57,10 @@ export function CustomerForm({ initial, mode = "create", customerId }: Props) {
       const method = mode === "edit" ? "PATCH" : "POST";
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "x-csrf-token": csrf } : {}),
+        },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -85,7 +90,11 @@ export function CustomerForm({ initial, mode = "create", customerId }: Props) {
     setBusy(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/customers/${customerId}`, { method: "DELETE" });
+      const csrf = getCsrfToken();
+      const res = await fetch(`/api/customers/${customerId}`, {
+        method: "DELETE",
+        headers: csrf ? { "x-csrf-token": csrf } : {},
+      });
       if (!res.ok) throw new Error();
       setMessage("Customer deleted.");
       router.push("/customers");

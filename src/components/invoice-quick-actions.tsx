@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "./invoice-quick-actions.module.css";
 import { useEffect } from "react";
+import { getCsrfToken } from "@/lib/csrf";
 
 type InvoiceQuickActionsProps = {
   invoiceId: string;
@@ -38,9 +39,10 @@ export function InvoiceQuickActions({
     setBusy(true);
     setMessage(null);
     try {
+      const csrf = getCsrfToken();
       const res = await fetch("/api/payments/mpesa/request", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(csrf ? { "x-csrf-token": csrf } : {}) },
         body: JSON.stringify({ invoiceId, amount }),
       });
       if (!res.ok) throw new Error();
@@ -56,9 +58,10 @@ export function InvoiceQuickActions({
     setBusy(true);
     setMessage(null);
     try {
+      const csrf = getCsrfToken();
       const res = await fetch(`/api/invoices/${invoiceId}/mark-paid`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(csrf ? { "x-csrf-token": csrf } : {}) },
         body: JSON.stringify({ method: "CASH", amount }),
       });
       if (!res.ok) throw new Error();

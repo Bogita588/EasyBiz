@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
+import { checkIdempotency, storeIdempotency } from "@/lib/idempotency";
 
 export async function PATCH(
   request: NextRequest,
@@ -15,6 +16,18 @@ export async function PATCH(
       body?.amount !== undefined && body?.amount !== null
         ? new Prisma.Decimal(body.amount)
         : null;
+    const idempotencyKey =
+      typeof request.headers.get("idempotency-key") === "string"
+        ? request.headers.get("idempotency-key")
+        : null;
+    const idempoHit = await checkIdempotency({
+      tenantId,
+      scope: "po:mark-paid",
+      key: idempotencyKey,
+    });
+    if (idempoHit) {
+      return NextResponse.json(idempoHit.response, { status: idempoHit.status });
+    }
 
     const poRecord = await prisma.purchaseOrder.findUnique({
       where: { id, tenantId },
@@ -109,7 +122,16 @@ export async function PATCH(
 
     await prisma.$transaction([poUpdate, ...stockUpdates, activity]);
 
-    return NextResponse.json({ message: "Purchase order marked paid." });
+    const responsePayload = { message: "Purchase order marked paid." };
+    await storeIdempotency({
+      tenantId,
+      scope: "po:mark-paid",
+      key: idempotencyKey,
+      status: 200,
+      response: responsePayload,
+    });
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("[PATCH /api/purchase-orders/:id/mark-paid]", error);
     return NextResponse.json(

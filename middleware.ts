@@ -4,6 +4,7 @@ import { parseRole, parseTenant, parseTenantStatus, isAllowed, type UserRole } f
 import { rateLimit } from "./src/middleware/rate-limit";
 import { runWithTenant } from "./src/lib/tenant-context";
 import { redisRateLimit } from "./src/middleware/redis-rate-limit";
+import crypto from "crypto";
 
 const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
   { pattern: /^\/admin/i, allowed: ["ADMIN"] },
@@ -29,6 +30,7 @@ export async function middleware(request: NextRequest) {
   const tenantId = parseTenant(request.headers);
   const tenantStatus = parseTenantStatus(request.headers);
   const path = request.nextUrl.pathname;
+  const method = request.method.toUpperCase();
 
   const limited = await redisRateLimit(request);
   if (limited) return limited;
@@ -38,6 +40,20 @@ export async function middleware(request: NextRequest) {
   // Force landing page to registration choice.
   if (path === "/") {
     return NextResponse.redirect(new URL("/register", request.url));
+  }
+
+  // CSRF protection for state-changing requests (webhooks bypassed).
+  const csrfBypass =
+    path.startsWith("/api/payments/mpesa/webhook") ||
+    path.startsWith("/_next") ||
+    method === "OPTIONS";
+  const mutating = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+  if (mutating && !csrfBypass) {
+    const csrfCookie = request.cookies.get("ez_csrf")?.value;
+    const csrfHeader = request.headers.get("x-csrf-token");
+    if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+      return NextResponse.json({ error: "CSRF validation failed." }, { status: 403 });
+    }
   }
 
   // Admin routes can run without tenant context (used for provisioning) but require admin role.
@@ -95,6 +111,18 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.next();
     response.headers.set("x-tenant-id", tenantId);
     response.headers.set("x-role", role);
+    // Issue CSRF token if absent.
+    const existingCsrf = request.cookies.get("ez_csrf")?.value;
+    if (!existingCsrf) {
+      const token = crypto.randomUUID();
+      response.cookies.set("ez_csrf", token, {
+        path: "/",
+        sameSite: "lax",
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 8,
+      });
+    }
     return response;
   });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styles from "@/app/users/users.module.css";
+import { getCsrfToken } from "@/lib/csrf";
 
 type Props = {
   initialEnabled: boolean;
@@ -43,7 +44,11 @@ export function UserSeatRequester({ initialEnabled, initialRequested }: Props) {
     setBusy(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/tenant/seats", { method: "POST" });
+      const csrf = getCsrfToken();
+      const res = await fetch("/api/tenant/seats", {
+        method: "POST",
+        headers: csrf ? { "x-csrf-token": csrf } : {},
+      });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRequested(Boolean(data.requested));

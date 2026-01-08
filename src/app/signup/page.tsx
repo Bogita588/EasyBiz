@@ -1,14 +1,18 @@
+"use client";
+
 import styles from "./signup.module.css";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export const dynamic = "force-dynamic";
 
-type Props = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
-
-export default async function SignupPage({ searchParams }: Props) {
-  const resolved = searchParams ? await searchParams : undefined;
-  const errorParam = resolved?.error;
-  const error = Array.isArray(errorParam) ? errorParam[0] : errorParam;
+export default function SignupPage() {
+  const params = useSearchParams();
+  const errorParam = params?.get("error");
+  const error = errorParam || null;
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   return (
     <div className={styles.screen}>
       <div className={styles.card}>
@@ -43,20 +47,40 @@ export default async function SignupPage({ searchParams }: Props) {
             placeholder="Phone"
             required
           />
-          <input
-            className={styles.input}
-            name="password"
-            type="password"
-            placeholder="Password"
-            required
-          />
-          <input
-            className={styles.input}
-            name="confirm"
-            type="password"
-            placeholder="Confirm password"
-            required
-          />
+          <div className={styles.passwordRow}>
+            <input
+              className={styles.input}
+              name="password"
+              type={showPw ? "text" : "password"}
+              placeholder="Password"
+              required
+            />
+            <button
+              type="button"
+              className={styles.toggle}
+              onClick={() => setShowPw((v) => !v)}
+              aria-label={showPw ? "Hide password" : "Show password"}
+            >
+              {showPw ? "Hide" : "Show"}
+            </button>
+          </div>
+          <div className={styles.passwordRow}>
+            <input
+              className={styles.input}
+              name="confirm"
+              type={showConfirm ? "text" : "password"}
+              placeholder="Confirm password"
+              required
+            />
+            <button
+              type="button"
+              className={styles.toggle}
+              onClick={() => setShowConfirm((v) => !v)}
+              aria-label={showConfirm ? "Hide password" : "Show password"}
+            >
+              {showConfirm ? "Hide" : "Show"}
+            </button>
+          </div>
           <button className={styles.primary} type="submit">
             Submit request
           </button>

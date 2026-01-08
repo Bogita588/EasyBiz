@@ -9,7 +9,16 @@ export async function getTenantId() {
   if (raw) {
     try {
       const parsed = JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
-      if (parsed?.tenantId) return parsed.tenantId as string;
+      if (parsed?.tenantId) {
+        const tenantId = parsed.tenantId as string;
+        // Set Postgres local setting for RLS enforcement.
+        try {
+          await prisma.$executeRaw`SET LOCAL app.tenant_id = ${tenantId}`;
+        } catch (err) {
+          console.error("[getTenantId:set_config]", err);
+        }
+        return tenantId;
+      }
     } catch {
       // fallthrough
     }

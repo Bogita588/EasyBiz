@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
+import { checkIdempotency, storeIdempotency } from "@/lib/idempotency";
 
 export async function PATCH(
   request: NextRequest,
@@ -14,6 +15,18 @@ export async function PATCH(
     const body = await request.json();
     const method = body?.method ?? "CASH";
     const amountRaw = body?.amount;
+    const idempotencyKey =
+      typeof request.headers.get("idempotency-key") === "string"
+        ? request.headers.get("idempotency-key")
+        : null;
+    const hit = await checkIdempotency({
+      tenantId,
+      scope: "invoice:mark-paid",
+      key: idempotencyKey,
+    });
+    if (hit) {
+      return NextResponse.json(hit.response, { status: hit.status });
+    }
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
@@ -55,7 +68,16 @@ export async function PATCH(
       }),
     ]);
 
-    return NextResponse.json({ message: "Invoice marked as paid." });
+    const responsePayload = { message: "Invoice marked as paid." };
+    await storeIdempotency({
+      tenantId,
+      scope: "invoice:mark-paid",
+      key: idempotencyKey,
+      status: 200,
+      response: responsePayload,
+    });
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("[PATCH /api/invoices/:id/mark-paid]", error);
     return NextResponse.json(

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "@/app/users/users.module.css";
+import { getCsrfToken } from "@/lib/csrf";
 
 type User = {
   id: string;
@@ -28,9 +29,13 @@ export function UserListClient({ users }: Props) {
     setBusy(id);
     setMessage(null);
     try {
+      const csrf = getCsrfToken();
       const res = await fetch(`/api/users/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "x-csrf-token": csrf } : {}),
+        },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -52,7 +57,11 @@ export function UserListClient({ users }: Props) {
     setBusy(id);
     setMessage(null);
     try {
-      const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+      const csrf = getCsrfToken();
+      const res = await fetch(`/api/users/${id}`, {
+        method: "DELETE",
+        headers: csrf ? { "x-csrf-token": csrf } : {},
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || "Failed");

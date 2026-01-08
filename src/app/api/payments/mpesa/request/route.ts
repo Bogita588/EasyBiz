@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTenantId } from "@/lib/data";
+import { checkIdempotency, storeIdempotency } from "@/lib/idempotency";
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +16,19 @@ export async function POST(request: Request) {
         { error: "Missing invoice or amount." },
         { status: 400 },
       );
+    }
+
+    const idempotencyKey =
+      typeof request.headers.get("idempotency-key") === "string"
+        ? request.headers.get("idempotency-key")
+        : null;
+    const cached = await checkIdempotency({
+      tenantId,
+      scope: "mpesa_request",
+      key: idempotencyKey,
+    });
+    if (cached) {
+      return NextResponse.json(cached.response, { status: cached.status });
     }
 
     const payment = await prisma.payment.create({
@@ -40,10 +54,20 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
+    const responsePayload = {
       paymentId: payment.id,
       message: "Payment request sent.",
+    };
+
+    await storeIdempotency({
+      tenantId,
+      scope: "mpesa_request",
+      key: idempotencyKey,
+      status: 200,
+      response: responsePayload,
     });
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("[POST /api/payments/mpesa/request]", error);
     return NextResponse.json(

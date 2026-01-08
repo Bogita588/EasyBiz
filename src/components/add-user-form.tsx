@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "@/app/users/users.module.css";
+import { getCsrfToken } from "@/lib/csrf";
 
 const roles: Array<"ATTENDANT" | "MANAGER" | "OWNER"> = ["ATTENDANT", "MANAGER", "OWNER"];
 
@@ -25,9 +26,13 @@ export function AddUserForm() {
     setBusy(true);
     setMessage(null);
     try {
+      const csrf = getCsrfToken();
       const res = await fetch("/api/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "x-csrf-token": csrf } : {}),
+        },
         body: JSON.stringify({ name, email, role, password }),
       });
       if (!res.ok) {

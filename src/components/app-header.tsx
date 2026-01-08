@@ -23,22 +23,23 @@ type Props = {
 
 export function AppHeader({ initialRole }: Props) {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<Role>(initialRole || "ATTENDANT");
+  const [role, setRole] = useState<Role>(() => {
+    if (initialRole) return initialRole;
+    if (typeof document !== "undefined") {
+      const roleAttr = document.body.dataset?.role;
+      if (
+        roleAttr === "ADMIN" ||
+        roleAttr === "OWNER" ||
+        roleAttr === "MANAGER" ||
+        roleAttr === "ATTENDANT"
+      ) {
+        return roleAttr;
+      }
+    }
+    return "ATTENDANT";
+  });
 
   useEffect(() => {
-    if (initialRole) return;
-    if (role === "OWNER" || role === "ADMIN") return;
-    const roleAttr =
-      typeof document !== "undefined" ? document.body.dataset?.role : undefined;
-    if (
-      roleAttr === "ADMIN" ||
-      roleAttr === "OWNER" ||
-      roleAttr === "MANAGER" ||
-      roleAttr === "ATTENDANT"
-    ) {
-      setRole(roleAttr);
-      return;
-    }
     fetch("/api/me")
       .then((res) => res.json())
       .then((data) => {
@@ -48,7 +49,7 @@ export function AppHeader({ initialRole }: Props) {
         }
       })
       .catch(() => {});
-  }, [initialRole, role]);
+  }, [initialRole]);
 
   const toggle = () => setOpen((v) => !v);
   const close = () => setOpen(false);
@@ -92,7 +93,11 @@ export function AppHeader({ initialRole }: Props) {
             ))}
         </nav>
       </div>
-      {open && <div className={styles.backdrop} onClick={close} />}
+      <div
+        className={`${styles.backdrop} ${open ? styles.backdropOpen : ""}`}
+        onClick={close}
+        aria-hidden="true"
+      />
     </>
   );
 }

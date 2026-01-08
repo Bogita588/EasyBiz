@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "./inventory-actions.module.css";
+import { getCsrfToken } from "@/lib/csrf";
+import crypto from "crypto";
+import { getCsrfToken } from "@/lib/csrf";
 
 type Props = {
   itemId: string;
@@ -49,9 +52,14 @@ export function InventoryActions({
         setBusy(false);
         return;
       }
+      const csrf = getCsrfToken();
       const res = await fetch("/api/purchase-orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "x-csrf-token": csrf } : {}),
+          "Idempotency-Key": crypto.randomUUID(),
+        },
         body: JSON.stringify({
           itemId,
           quantity: qty,
