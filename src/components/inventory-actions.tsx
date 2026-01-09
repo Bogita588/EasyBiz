@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "./inventory-actions.module.css";
-import { getCsrfToken } from "@/lib/csrf";
 import crypto from "crypto";
 import { getCsrfToken } from "@/lib/csrf";
 

@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const idempotencyKey =
       typeof request.headers.get("idempotency-key") === "string"
         ? request.headers.get("idempotency-key")
-        : null;
+        : `${invoiceId}:${amount}:${phone || "mpesa"}`;
     const cached = await checkIdempotency({
       tenantId,
       scope: "mpesa_request",
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       data: {
         tenantId,
         invoiceId,
+        source: "INVOICE",
         method: "MPESA_TILL",
         status: "PENDING",
         amount: amount,

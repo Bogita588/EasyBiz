@@ -15,10 +15,11 @@ export async function PATCH(
     const body = await request.json();
     const method = body?.method ?? "CASH";
     const amountRaw = body?.amount;
+    const receipt = typeof body?.receipt === "string" ? body.receipt.trim() : "";
     const idempotencyKey =
       typeof request.headers.get("idempotency-key") === "string"
         ? request.headers.get("idempotency-key")
-        : null;
+        : `${invoiceId}:${method}:${amountRaw ?? "auto"}:${receipt || "n/a"}`;
     const hit = await checkIdempotency({
       tenantId,
       scope: "invoice:mark-paid",
@@ -47,21 +48,23 @@ export async function PATCH(
         data: {
           tenantId,
           invoiceId,
+          source: "INVOICE",
           method,
           status: "CONFIRMED",
           amount,
           confirmedAt: new Date(),
+          mpesaReceipt: receipt || null,
         },
       }),
       prisma.invoice.update({
-        where: { id: invoiceId },
+        where: { id: invoiceId, tenantId },
         data: { status: "PAID" },
       }),
       prisma.activityEvent.create({
         data: {
           tenantId,
           type: "PAYMENT",
-          message: "Payment received. All settled.",
+          message: `Invoice paid via ${method.replace("MPESA_", "M-Pesa ")}.`,
           refType: "invoice",
           refId: invoiceId,
         },

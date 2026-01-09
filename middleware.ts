@@ -4,7 +4,6 @@ import { parseRole, parseTenant, parseTenantStatus, isAllowed, type UserRole } f
 import { rateLimit } from "./src/middleware/rate-limit";
 import { runWithTenant } from "./src/lib/tenant-context";
 import { redisRateLimit } from "./src/middleware/redis-rate-limit";
-import crypto from "crypto";
 
 const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
   { pattern: /^\/admin/i, allowed: ["ADMIN"] },
@@ -13,6 +12,8 @@ const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
   { pattern: /^\/suppliers/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/inventory/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/money/i, allowed: ["OWNER", "MANAGER"] },
+  { pattern: /^\/collections/i, allowed: ["OWNER", "MANAGER"] },
+  { pattern: /^\/api\/collections/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/purchase-orders/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/suppliers/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/items/i, allowed: ["OWNER", "MANAGER"] },
@@ -114,7 +115,10 @@ export async function middleware(request: NextRequest) {
     // Issue CSRF token if absent.
     const existingCsrf = request.cookies.get("ez_csrf")?.value;
     if (!existingCsrf) {
-      const token = crypto.randomUUID();
+      const token =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`;
       response.cookies.set("ez_csrf", token, {
         path: "/",
         sameSite: "lax",

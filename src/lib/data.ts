@@ -13,7 +13,10 @@ export async function getTenantId() {
         const tenantId = parsed.tenantId as string;
         // Set Postgres local setting for RLS enforcement.
         try {
-          await prisma.$executeRaw`SET LOCAL app.tenant_id = ${tenantId}`;
+          await prisma.$executeRawUnsafe(
+            `SELECT set_config('app.tenant_id', $1, true)`,
+            tenantId,
+          );
         } catch (err) {
           console.error("[getTenantId:set_config]", err);
         }
@@ -24,6 +27,23 @@ export async function getTenantId() {
     }
   }
   throw new Error("Missing tenant context. Please log in.");
+}
+
+export async function getTenantProfile() {
+  const tenantId = await getTenantId();
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: {
+      name: true,
+      businessType: true,
+      layout: true,
+      mpesaTill: true,
+      mpesaPaybill: true,
+      mpesaPochi: true,
+      acceptsCash: true,
+    },
+  });
+  return { id: tenantId, ...(tenant || {}) };
 }
 
 export async function getSummary() {

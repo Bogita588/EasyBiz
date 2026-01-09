@@ -14,15 +14,16 @@ export default async function SuppliersPage() {
     orderBy: { name: "asc" },
     include: {
       orders: {
-        select: { status: true, total: true, paidAt: true },
+        select: { status: true, total: true, paidAt: true, paidAmount: true },
       },
+      _count: { select: { orders: true } },
     },
   });
 
   const enriched = suppliers.map((s) => {
     const payables = s.orders
       .filter((po) => !po.paidAt)
-      .reduce((sum, po) => sum + Number(po.total || 0), 0);
+      .reduce((sum, po) => sum + Math.max(0, Number(po.total || 0) - Number(po.paidAmount || 0)), 0);
     return { ...s, payables };
   });
 

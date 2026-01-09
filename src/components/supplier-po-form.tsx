@@ -15,11 +15,22 @@ type Props = {
   supplierName: string;
   items: ItemOption[];
   contact?: { phone?: string | null; email?: string | null; whatsapp?: string | null };
+  businessName?: string;
+  businessPhone?: string | null;
+  businessEmail?: string | null;
 };
 
 type LastPo = { id: string; qty: number; itemName?: string };
 
-export function SupplierPOForm({ supplierId, supplierName, items, contact }: Props) {
+export function SupplierPOForm({
+  supplierId,
+  supplierName,
+  items,
+  contact,
+  businessName,
+  businessPhone,
+  businessEmail,
+}: Props) {
   const [itemId, setItemId] = useState(items[0]?.id ?? "");
   const [quantity, setQuantity] = useState<number>(1);
   const [needBy, setNeedBy] = useState("");
@@ -123,9 +134,11 @@ export function SupplierPOForm({ supplierId, supplierName, items, contact }: Pro
             <a
               className={styles.primary}
               href={`https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(
-                `Purchase order ${lastPo.id} for ${lastPo.qty} × ${lastPo.itemName || "item"}.${
-                  needBy ? ` Need by ${needBy}.` : ""
-                }${dueDate ? ` Due ${dueDate}.` : ""}`,
+                `From ${businessName || "your business"}${businessPhone ? ` (${businessPhone})` : ""}\n` +
+                  `PO ${lastPo.id} for ${lastPo.qty} × ${lastPo.itemName || "item"}${unitCost ? ` at KES ${unitCost}` : ""}.\n` +
+                  (needBy ? `Need by: ${needBy}. ` : "") +
+                  (dueDate ? `Due: ${dueDate}. ` : "") +
+                  `Please confirm delivery.`,
               )}`}
               target="_blank"
               rel="noreferrer"
@@ -136,9 +149,12 @@ export function SupplierPOForm({ supplierId, supplierName, items, contact }: Pro
           <a
             className={styles.primary}
             href={`mailto:${contact?.email || ""}?subject=Purchase%20Order%20${lastPo.id}&body=${encodeURIComponent(
-              `Hi ${supplierName},\n\nPurchase order ${lastPo.id} for ${lastPo.qty} × ${lastPo.itemName || "item"}.${
-                needBy ? ` Need by ${needBy}.` : ""
-              }${dueDate ? ` Due ${dueDate}.` : ""}\n\nThank you.`,
+              `Hi ${supplierName},\n\nThis is ${businessName || "your customer"}${
+                businessPhone ? ` (${businessPhone})` : ""
+              }${businessEmail ? ` / ${businessEmail}` : ""}.\n\n` +
+                `Purchase order ${lastPo.id} for ${lastPo.qty} × ${lastPo.itemName || "item"}${
+                  unitCost ? ` at KES ${unitCost}` : ""
+                }${needBy ? ` • Need by ${needBy}` : ""}${dueDate ? ` • Due ${dueDate}` : ""}.\n\nPlease confirm delivery.\nThank you.`,
             )}`}
           >
             Send PO via Email

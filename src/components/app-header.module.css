@@ -143,6 +143,11 @@
   pointer-events: auto;
 }
 
+.drawerClosed {
+  transform: translateX(100%);
+  pointer-events: none;
+}
+
 @media (max-width: 600px) {
   .bar {
     padding: 12px 14px;
@@ -157,7 +162,8 @@
   }
   .drawer {
     width: 100%;
-    right: -100%;
+    right: 0;
+    transform: translateX(100%);
   }
 }
 

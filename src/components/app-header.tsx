@@ -13,6 +13,7 @@ const links: Array<{ href: string; label: string; roles?: Role[] }> = [
   { href: "/customers", label: "Customers" },
   { href: "/suppliers", label: "Suppliers", roles: ["OWNER", "MANAGER"] },
   { href: "/inventory", label: "Inventory", roles: ["OWNER", "MANAGER"] },
+  { href: "/collections", label: "Collections", roles: ["OWNER", "MANAGER"] },
   { href: "/users", label: "Users", roles: ["OWNER", "ADMIN"] },
   { href: "/api/auth/logout", label: "Logout" },
 ];
@@ -47,6 +48,10 @@ export function AppHeader({ initialRole }: Props) {
         if (r === "ADMIN" || r === "OWNER" || r === "MANAGER" || r === "ATTENDANT") {
           setRole(r);
         }
+        const status = (data?.status || "").toUpperCase();
+        if (status === "PENDING" || status === "SUSPENDED") {
+          setOpen(false);
+        }
       })
       .catch(() => {});
   }, [initialRole]);
@@ -61,19 +66,21 @@ export function AppHeader({ initialRole }: Props) {
           <span className={styles.logo}>EZ</span>
           <span className={styles.name}>EasyBiz</span>
         </div>
-        <button
-          className={styles.menuButton}
-          onClick={toggle}
-          aria-label="Toggle menu"
-          aria-expanded={open}
-        >
-          <span className={`${styles.line} ${open ? styles.lineOpenTop : ""}`} />
-          <span className={`${styles.line} ${open ? styles.lineOpenMid : ""}`} />
-          <span className={`${styles.line} ${open ? styles.lineOpenBot : ""}`} />
-        </button>
+        {role !== "UNKNOWN" && (
+          <button
+            className={styles.menuButton}
+            onClick={toggle}
+            aria-label="Toggle menu"
+            aria-expanded={open}
+          >
+            <span className={`${styles.line} ${open ? styles.lineOpenTop : ""}`} />
+            <span className={`${styles.line} ${open ? styles.lineOpenMid : ""}`} />
+            <span className={`${styles.line} ${open ? styles.lineOpenBot : ""}`} />
+          </button>
+        )}
       </header>
 
-      <div className={`${styles.drawer} ${open ? styles.open : ""}`}>
+      <div className={`${styles.drawer} ${open ? styles.open : styles.drawerClosed}`}>
         <div className={styles.drawerHeader}>
           <div className={styles.brand}>
             <span className={styles.logo}>EZ</span>

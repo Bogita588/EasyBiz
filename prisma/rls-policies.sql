@@ -37,3 +37,12 @@ END$$;
 
 -- Tables without tenantId (e.g., InvoiceLine, PurchaseOrderLine) need custom policies (by joining parent) and are excluded here.
 -- Tenant table is managed by admins; policies can be added separately if needed.
+
+-- Child tables (no tenantId) enforced via parent joins
+DROP POLICY IF EXISTS invoice_line_tenant ON "InvoiceLine";
+CREATE POLICY invoice_line_tenant ON "InvoiceLine"
+  USING (EXISTS (SELECT 1 FROM "Invoice" inv WHERE inv.id = "InvoiceLine"."invoiceId" AND tenant_ok(inv."tenantId")));
+
+DROP POLICY IF EXISTS po_line_tenant ON "PurchaseOrderLine";
+CREATE POLICY po_line_tenant ON "PurchaseOrderLine"
+  USING (EXISTS (SELECT 1 FROM "PurchaseOrder" po WHERE po.id = "PurchaseOrderLine"."purchaseOrderId" AND tenant_ok(po."tenantId")));

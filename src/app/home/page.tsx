@@ -1,6 +1,6 @@
 import styles from "../page.module.css";
 import { copy } from "@/lib/copy";
-import { getFeed, getLowStockAlerts, getSummary } from "@/lib/data";
+import { getFeed, getLowStockAlerts, getSummary, getTenantProfile } from "@/lib/data";
 import { formatCurrencyKES } from "@/lib/format";
 import Link from "next/link";
 import { RefreshAlertsButton } from "@/components/refresh-alerts";
@@ -18,7 +18,9 @@ export default async function Home() {
     getSummary(),
     getFeed(),
     getLowStockAlerts(),
+    getTenantProfile(),
   ]);
+  const profile = await getTenantProfile();
 
   const stats = [
     {
@@ -48,10 +50,11 @@ export default async function Home() {
       <header className={styles.header}>
         <div>
           <p className={styles.kicker}>Home • Today</p>
-          <h1 className={styles.title}>{copy.appName}</h1>
+          <h1 className={styles.title}>{profile.name || copy.appName}</h1>
           <p className={styles.tagline}>
-            WhatsApp-smooth ERP for Nairobi SMEs. One tap, clear copy, offline
-            friendly.
+            {profile.businessType
+              ? `${profile.businessType} • One-tap actions, clear language, offline friendly.`
+              : "Calm ERP for Nairobi SMEs. One tap, clear copy, offline friendly."}
           </p>
         </div>
         <span className={styles.badge}>Offline-ready</span>

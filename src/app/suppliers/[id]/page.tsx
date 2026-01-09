@@ -20,6 +20,7 @@ type SupplierRecord = {
     id: string;
     status: string;
     total: Prisma.Decimal | null;
+    paidAmount?: Prisma.Decimal | null;
     needBy: Date | null;
     dueDate: Date | null;
     createdAt: Date;
@@ -65,6 +66,7 @@ export default async function SupplierProfile({
             dueDate: true,
             createdAt: true,
             paidAt: true,
+            paidAmount: true,
           },
         },
         items: {
@@ -98,6 +100,7 @@ export default async function SupplierProfile({
             dueDate: true,
             createdAt: true,
             paidAt: true,
+            paidAmount: true,
           },
         },
         items: {
@@ -121,7 +124,10 @@ export default async function SupplierProfile({
   }
 
   const outstanding = supplier.orders.filter((po) => !po.paidAt);
-  const owed = outstanding.reduce((sum, po) => sum + Number(po.total || 0), 0);
+  const owed = outstanding.reduce(
+    (sum, po) => sum + Math.max(0, Number(po.total || 0) - Number(po.paidAmount || 0)),
+    0,
+  );
 
   return (
     <div className={styles.screen}>

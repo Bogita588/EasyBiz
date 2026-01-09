@@ -50,6 +50,19 @@ a {
   padding: 28px 16px 56px;
 }
 
+/* Hide dev-only Next.js floating badge/overlay */
+.nextjs-portal,
+.__next-dev-client-overlay {
+  display: none !important;
+}
+/* Additional dev overlay selectors (route/bundler badge) */
+.nextjs-dev-overlay,
+[data-nextjs-dev-overlay],
+.nextjs-router-info,
+.nextjs-toast {
+  display: none !important;
+}
+
 @media (min-width: 768px) {
   .app-content {
     padding: 36px 24px 72px;

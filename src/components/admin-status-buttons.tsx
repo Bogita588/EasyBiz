@@ -5,6 +5,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "@/app/admin/admin.module.css";
+import { getCsrfToken } from "@/lib/csrf";
 
 type Props = {
   tenantId: string;
@@ -29,9 +30,13 @@ export function AdminStatusButtons({
     setBusy(true);
     setMessage(null);
     try {
+      const csrf = getCsrfToken();
       const res = await fetch(`/api/admin/tenants/${tenantId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "x-csrf-token": csrf } : {}),
+        },
         body: JSON.stringify({ status: value }),
       });
       if (!res.ok) throw new Error();
@@ -49,9 +54,13 @@ export function AdminStatusButtons({
     setBusy(true);
     setMessage(null);
     try {
+      const csrf = getCsrfToken();
       const res = await fetch(`/api/admin/tenants/${tenantId}/user-seats`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "x-csrf-token": csrf } : {}),
+        },
         body: JSON.stringify({ enabled: !seatsEnabled }),
       });
       if (!res.ok) throw new Error();
