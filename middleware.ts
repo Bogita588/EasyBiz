@@ -14,6 +14,8 @@ const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
   { pattern: /^\/money/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/collections/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/collections/i, allowed: ["OWNER", "MANAGER"] },
+  { pattern: /^\/sales\/quick/i, allowed: ["OWNER", "MANAGER"] },
+  { pattern: /^\/api\/sales\/quick/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/purchase-orders/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/suppliers/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/items/i, allowed: ["OWNER", "MANAGER"] },
@@ -108,7 +110,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return runWithTenant(tenantId, () => {
+  return runWithTenant(tenantId, async () => {
     const response = NextResponse.next();
     response.headers.set("x-tenant-id", tenantId);
     response.headers.set("x-role", role);

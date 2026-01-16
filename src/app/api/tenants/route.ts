@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { toDecimalOrNull } from "@/lib/sanitize";
-import { UserRole } from "@prisma/client";
+import { LayoutPreset, UserRole } from "@prisma/client";
 
-const allowedLayouts = ["GENERIC", "DUKA", "SALON", "HARDWARE", "EATERY", "SERVICE"];
+const allowedLayouts: LayoutPreset[] = ["GENERIC", "DUKA", "SALON", "HARDWARE", "EATERY", "SERVICE"];
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const businessType = body?.businessType ?? null;
     const layoutRaw = (body?.layout as string | undefined)?.toUpperCase();
-    const layout = allowedLayouts.includes(layoutRaw ?? "") ? layoutRaw : "GENERIC";
+    const layout: LayoutPreset = allowedLayouts.includes(layoutRaw as LayoutPreset)
+      ? (layoutRaw as LayoutPreset)
+      : "GENERIC";
     const businessName = body?.businessName ?? "My business";
     const payment: PaymentPayload = body?.payment ?? {};
     const firstItems = normalizeFirstItems(body?.firstItems ?? body?.firstItem);
-    const presetItems = firstItems.length ? [] : presetForLayout(layout);
+    const presetItems = firstItems.length ? [] : presetForLayout(layout || "GENERIC");
 
     const tenant = await prisma.tenant.create({
       data: buildTenantCreateData({
@@ -49,7 +51,7 @@ function buildTenantCreateData({
 }: {
   businessName: string;
   businessType: string | null;
-  layout: string;
+  layout: LayoutPreset;
   payment: PaymentPayload;
   firstItems: ItemInput[];
 }) {

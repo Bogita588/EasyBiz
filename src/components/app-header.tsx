@@ -66,18 +66,16 @@ export function AppHeader({ initialRole }: Props) {
           <span className={styles.logo}>EZ</span>
           <span className={styles.name}>EasyBiz</span>
         </div>
-        {role !== "UNKNOWN" && (
-          <button
-            className={styles.menuButton}
-            onClick={toggle}
-            aria-label="Toggle menu"
-            aria-expanded={open}
-          >
-            <span className={`${styles.line} ${open ? styles.lineOpenTop : ""}`} />
-            <span className={`${styles.line} ${open ? styles.lineOpenMid : ""}`} />
-            <span className={`${styles.line} ${open ? styles.lineOpenBot : ""}`} />
-          </button>
-        )}
+        <button
+          className={styles.menuButton}
+          onClick={toggle}
+          aria-label="Toggle menu"
+          aria-expanded={open}
+        >
+          <span className={`${styles.line} ${open ? styles.lineOpenTop : ""}`} />
+          <span className={`${styles.line} ${open ? styles.lineOpenMid : ""}`} />
+          <span className={`${styles.line} ${open ? styles.lineOpenBot : ""}`} />
+        </button>
       </header>
 
       <div className={`${styles.drawer} ${open ? styles.open : styles.drawerClosed}`}>

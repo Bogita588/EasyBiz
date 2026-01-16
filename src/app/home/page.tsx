@@ -78,6 +78,9 @@ export default async function Home() {
               <Link href="/inventory" className={styles.secondaryCta}>
                 Manage inventory
               </Link>
+              <Link href="/sales/quick" className={styles.secondaryCta}>
+                Record quick sale
+              </Link>
             </div>
           </section>
 

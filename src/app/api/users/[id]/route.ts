@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { parseRole, parseTenant } from "@/lib/auth";
@@ -6,11 +6,12 @@ import { parseRole, parseTenant } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  context: { params: { id: string } } | { params: Promise<{ id: string }> },
 ) {
   try {
-    const id = params?.id;
+    const resolved = "params" in context ? (context as any).params : { id: null };
+    const id = resolved && typeof resolved.then === "function" ? (await resolved).id : resolved?.id;
     if (!id) {
       return NextResponse.json({ error: "Missing user id." }, { status: 400 });
     }
@@ -78,11 +79,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  context: { params: { id: string } } | { params: Promise<{ id: string }> },
 ) {
   try {
-    const id = params?.id;
+    const resolved = "params" in context ? (context as any).params : { id: null };
+    const id = resolved && typeof resolved.then === "function" ? (await resolved).id : resolved?.id;
     if (!id) {
       return NextResponse.json({ error: "Missing user id." }, { status: 400 });
     }

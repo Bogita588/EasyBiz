@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 export async function logAudit(params: {
   tenantId?: string | null;
@@ -8,15 +9,13 @@ export async function logAudit(params: {
 }) {
   try {
     // If model is unavailable (e.g., during build/dev), skip.
-    // @ts-expect-error auditLog may be undefined in older schemas
-    if (!prisma || !prisma.auditLog) return;
-    // @ts-expect-error auditLog may be undefined in older schemas
+    if (!prisma || !(prisma as { auditLog?: unknown }).auditLog) return;
     await prisma.auditLog.create({
       data: {
         tenantId: params.tenantId || null,
         userId: params.userId || null,
         action: params.action,
-        meta: params.meta ?? {},
+        meta: (params.meta as Prisma.JsonObject) ?? {},
       },
     });
   } catch {

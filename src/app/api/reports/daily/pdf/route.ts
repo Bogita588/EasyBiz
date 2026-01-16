@@ -217,7 +217,11 @@ export async function GET() {
           let deliveryNote = "Pending delivery";
           if (po.paidAt && (po.needBy || po.dueDate)) {
             const target = po.needBy || po.dueDate;
-            deliveryNote = po.paidAt <= target ? "Delivered early/on time" : "Delivered late";
+            if (target) {
+              deliveryNote = po.paidAt <= target ? "Delivered early/on time" : "Delivered late";
+            } else {
+              deliveryNote = "Received";
+            }
           } else if (po.paidAt) {
             deliveryNote = "Received";
           }

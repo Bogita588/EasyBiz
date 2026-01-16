@@ -28,7 +28,7 @@ export async function redisRateLimit(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "ip";
   const key = `rl:${tenant}:${role}:${ip}`;
   const res = await redis.pipeline().incr(key).expire(key, WINDOW_SECONDS).exec();
-  const count = Number(res?.[0]?.result || 0);
+  const count = Number((res?.[0] as any)?.result ?? 0);
   if (count > MAX_REQUESTS) {
     return NextResponse.json(
       { error: "Rate limit exceeded. Try again shortly." },
