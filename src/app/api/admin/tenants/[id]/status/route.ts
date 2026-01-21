@@ -9,10 +9,11 @@ const allowedStatuses: TenantStatus[] = ["ACTIVE", "PENDING", "SUSPENDED"];
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } | Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params;
+    const resolved = "then" in params ? await params : params;
+    const id = resolved?.id;
     const body = await request.json().catch(() => ({}));
     const statusRaw = typeof body?.status === "string" ? body.status.toUpperCase() : "";
 

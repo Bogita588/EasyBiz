@@ -15,6 +15,7 @@ const roleRules: { pattern: RegExp; allowed: UserRole[] }[] = [
   { pattern: /^\/collections/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/collections/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/sales\/quick/i, allowed: ["OWNER", "MANAGER"] },
+  { pattern: /^\/sales\/log/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/sales\/quick/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/purchase-orders/i, allowed: ["OWNER", "MANAGER"] },
   { pattern: /^\/api\/suppliers/i, allowed: ["OWNER", "MANAGER"] },
@@ -40,6 +41,22 @@ export async function middleware(request: NextRequest) {
   const limitedMemory = rateLimit(request);
   if (limitedMemory) return limitedMemory;
 
+  const ensureCsrfCookie = (response: NextResponse) => {
+    const existingCsrf = request.cookies.get("ez_csrf")?.value;
+    if (existingCsrf) return;
+    const token =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
+    response.cookies.set("ez_csrf", token, {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 8,
+    });
+  };
+
   // Force landing page to registration choice.
   if (path === "/") {
     return NextResponse.redirect(new URL("/register", request.url));
@@ -62,9 +79,14 @@ export async function middleware(request: NextRequest) {
   // Admin routes can run without tenant context (used for provisioning) but require admin role.
   if (/^\/admin/i.test(path) || /^\/api\/admin/i.test(path)) {
     if (role !== "ADMIN") {
+      if (path.startsWith("/api/")) {
+        return NextResponse.json({ error: "Admins only." }, { status: 403 });
+      }
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    return NextResponse.next();
+    const response = NextResponse.next();
+    ensureCsrfCookie(response);
+    return response;
   }
 
   // If already authenticated and hits auth/register pages, send to appropriate area.
@@ -114,21 +136,7 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.next();
     response.headers.set("x-tenant-id", tenantId);
     response.headers.set("x-role", role);
-    // Issue CSRF token if absent.
-    const existingCsrf = request.cookies.get("ez_csrf")?.value;
-    if (!existingCsrf) {
-      const token =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random()}`;
-      response.cookies.set("ez_csrf", token, {
-        path: "/",
-        sameSite: "lax",
-        httpOnly: false,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 8,
-      });
-    }
+    ensureCsrfCookie(response);
     return response;
   });
 }

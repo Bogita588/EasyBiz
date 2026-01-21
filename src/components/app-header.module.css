@@ -131,7 +131,6 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.2);
   z-index: 55;
   opacity: 0;
   pointer-events: none;
@@ -139,6 +138,7 @@
 }
 
 .backdropOpen {
+  background: rgba(0, 0, 0, 0.2);
   opacity: 1;
   pointer-events: auto;
 }

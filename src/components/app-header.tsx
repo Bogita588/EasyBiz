@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import styles from "./app-header.module.css";
 
 type Role = "ADMIN" | "OWNER" | "MANAGER" | "ATTENDANT";
@@ -14,6 +15,8 @@ const links: Array<{ href: string; label: string; roles?: Role[] }> = [
   { href: "/suppliers", label: "Suppliers", roles: ["OWNER", "MANAGER"] },
   { href: "/inventory", label: "Inventory", roles: ["OWNER", "MANAGER"] },
   { href: "/collections", label: "Collections", roles: ["OWNER", "MANAGER"] },
+  { href: "/sales/quick", label: "Quick sale", roles: ["OWNER", "MANAGER"] },
+  { href: "/sales/log", label: "Sales log", roles: ["OWNER", "MANAGER"] },
   { href: "/users", label: "Users", roles: ["OWNER", "ADMIN"] },
   { href: "/api/auth/logout", label: "Logout" },
 ];
@@ -24,6 +27,16 @@ type Props = {
 
 export function AppHeader({ initialRole }: Props) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const hideHeader = useMemo(
+    () =>
+      pathname?.startsWith("/login") ||
+      pathname?.startsWith("/register") ||
+      pathname?.startsWith("/signup") ||
+      pathname?.startsWith("/reset") ||
+      pathname?.startsWith("/access"),
+    [pathname],
+  );
   const [role, setRole] = useState<Role>(() => {
     if (initialRole) return initialRole;
     if (typeof document !== "undefined") {
@@ -58,6 +71,10 @@ export function AppHeader({ initialRole }: Props) {
 
   const toggle = () => setOpen((v) => !v);
   const close = () => setOpen(false);
+
+  if (hideHeader) {
+    return null;
+  }
 
   return (
     <>
