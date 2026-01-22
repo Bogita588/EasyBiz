@@ -7,6 +7,8 @@ North star: If a Kenyan SME owner can use WhatsApp, they can run their business 
 - API routes or dedicated backend in the same repo, using Postgres (Docker on desktop).
 - Auth and tenancy: every request carries tenant and user identity; data is isolated per tenant.
 - Local run: `docker compose up -d postgres`, install deps, set `.env.local`, run `npm run dev` (or `pnpm dev`). Keep `.env.development` vs `.env.production` split.
+- Required services: Postgres + Redis (rate limiting is mandatory in production; without Redis the app returns 503), SMTP optional for outbound email/share; otherwise email actions no-op.
+- Core env vars: `DATABASE_URL`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `NEXT_PUBLIC_APP_NAME`; optional SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, `SMTP_SECURE` (true/false). Tighten CSP in `next.config.ts` for your domain if you add external origins.
 
 ### Local dev quickstart (Stage 0)
 - Start Postgres: `docker compose up -d`
@@ -122,6 +124,7 @@ North star: If a Kenyan SME owner can use WhatsApp, they can run their business 
 - Environments: dev (local), staging (prod-like), production. Separate Postgres databases per env.
 - Secrets: stored via env files locally; use Vault/KMS for staging/prod; never commit secrets.
 - Migrations: managed via chosen tool (Prisma/Drizzle/Knex). Commands: `npm run db:migrate`, `npm run db:generate` (as applicable). Apply migrations before deploy.
+- RLS: apply once per database after migrations: `npm run db:rls` (uses `DATABASE_URL`, runs `prisma/rls-policies.sql`). Verify `app.tenant_id` is set per request (see `getTenantId`).
 - CI pipeline: install -> lint -> typecheck -> unit/integration tests -> Next.js build -> db migration dry-run -> docker image build -> e2e (staging). Block on any failure.
 - Observability: structured logs with request ids and tenant ids, error reporting (Sentry-like), metrics (latency, error rate, tenant isolation checks), audit trails for sensitive actions.
 - Security: HTTPS everywhere, HSTS, RBAC, rate limiting, input validation, idempotency keys for mutating endpoints, webhook signature verification for M-Pesa, per-tenant row level security or scoped queries.
@@ -129,6 +132,13 @@ North star: If a Kenyan SME owner can use WhatsApp, they can run their business 
 - Performance: bundle size budgets, code-splitting, API pagination and limits, caching of static lookups, indexes on invoice/payment/customer tables.
 - Availability & persistence: run Postgres in HA (primary + streaming replica) with PITR backups; use WAL archiving and daily snapshots. Frontend Next.js instances behind a load balancer (NGINX/ALB); stateless app servers with session cookies. Add PG pooler (pgbouncer) per env; readiness/liveness probes for containers. Stripe/billing and M-Pesa webhooks behind retry-friendly idempotency keys.
 - Offline: enqueue mutations client-side with persisted queue; server endpoints must be idempotent and tolerate replay.
+
+## Production deployment quick checklist
+1) Services: provision Postgres, Redis, HTTPS ingress/LB. Optional: SMTP provider for email/share flows. Set secrets: `DATABASE_URL`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `NEXT_PUBLIC_APP_NAME`, optional SMTP vars.
+2) Build & migrate: `npm install`, `npm run db:generate`, `npm run db:migrate -- --name init` (or your migration), then `npm run db:rls` to enforce tenant isolation, then `npm run build`.
+3) Run: `npm run start` behind your process manager/LB; health check at `/api/health`. Ensure Redis reachable; in production the app returns 503 if Redis is missing.
+4) Post-deploy: verify tenant isolation (attempt cross-tenant fetch should 403/empty), run smoke tests for login, quick sale (`/sales/quick`), sales log (`/sales/log`), invoice create/mark-paid, and supplier PO.
+5) Backups/observability: enable Postgres backups + restore drills; add structured logging and error reporting (Sentry-like) with tenant ids; monitor rate limit hits and slow queries.
 
 ## Microcopy quick reference
 - Success: "Invoice sent. Waiting for payment." / "Payment received. All settled." / "Order placed. We will update stock when it arrives."

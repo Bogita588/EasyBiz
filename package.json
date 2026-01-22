@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
+    "db:rls": "psql \"$DATABASE_URL\" -f prisma/rls-policies.sql",
     "check": "npm run lint && npm run typecheck"
   },
   "dependencies": {
